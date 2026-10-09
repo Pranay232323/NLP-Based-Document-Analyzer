@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+::selection {
+  background-color: #c7d2fe;
+}
+
+@media print {
+  aside,
+  header.lg\:hidden,
+  .no-print {
+    display: none !important;
+  }
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  body {
+    background: #fff !important;
+  }
+}
+
+.entity-highlight {
+  border-radius: 4px;
+  padding: 0 2px;
+  font-weight: 600;
+}
