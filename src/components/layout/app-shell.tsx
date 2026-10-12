@@ -20,6 +20,13 @@ import {
   Menu,
   X,
   Brain,
+  Smile,
+  Target,
+  Compass,
+  Key,
+  Languages,
+  Sparkles,
+  History,
 } from "lucide-react";
 import { useDocument } from "@/components/document-context";
 
@@ -47,14 +54,28 @@ const NAV_GROUPS = [
     ],
   },
   {
-    label: "Project",
+    label: "ADVANCED NLP LAB",
+    items: [
+      { href: "/sentiment", label: "Sentiment Analysis", icon: Smile },
+      { href: "/classification", label: "Text Classification", icon: Target },
+      { href: "/topic-modeling", label: "Topic Modeling", icon: Compass },
+      { href: "/keywords", label: "Keyword Extraction", icon: Key },
+      { href: "/language-id", label: "Language Identification", icon: Languages },
+      { href: "/semantic-similarity", label: "Semantic Similarity", icon: Sparkles },
+    ],
+  },
+  {
+    label: "Academic & Tracking",
     items: [
       { href: "/report", label: "Final NLP Report", icon: ClipboardList },
       { href: "/experiments", label: "Experiment Mapping", icon: ListChecks },
+      { href: "/multilingual", label: "Multilingual Registry", icon: Languages },
+      { href: "/history", label: "Experiment History", icon: History },
       { href: "/about", label: "About Project", icon: Info },
     ],
   },
 ];
+
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

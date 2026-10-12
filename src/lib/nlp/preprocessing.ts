@@ -20,7 +20,14 @@ export function tokenize(text: string): string[] {
   return matches ?? [];
 }
 
+/** Tokenize extracting only words */
+export function tokenizeWords(text: string): string[] {
+  const matches = text.match(/[A-Za-z]+(?:'[A-Za-z]+)?/g);
+  return matches ?? [];
+}
+
 export function isWordToken(token: string): boolean {
+
   return /^[A-Za-z]+(?:'[A-Za-z]+)?$/.test(token);
 }
 

@@ -14,8 +14,15 @@ const MODULES = [
   { href: "/pos", title: "POS Tagger", desc: "Penn-Treebank tags & distribution chart", exp: 6 },
   { href: "/chunking", title: "Chunking", desc: "NP / VP / PP phrase structure", exp: 7 },
   { href: "/ner", title: "Named Entities", desc: "PERSON, ORG, GPE, DATE highlighting", exp: 8 },
+  { href: "/sentiment", title: "Sentiment Analysis", desc: "Polarity score, confidence, token breakdown", exp: 11 },
+  { href: "/keywords", title: "Keyword Extraction", desc: "RAKE, TF-IDF, noun phrases comparison", exp: 14 },
+  { href: "/topic-modeling", title: "Topic Modeling", desc: "Latent topics, top terms, doc distributions", exp: 13 },
+  { href: "/language-id", title: "Language ID", desc: "Latin vs Devanagari (Hindi / Marathi)", exp: 15 },
+  { href: "/similarity", title: "Doc Similarity", desc: "TF-IDF & Cosine distance", exp: 9 },
+  { href: "/semantic-similarity", title: "Semantic Similarity", desc: "Multi-metric lexical & soft semantic", exp: 16 },
   { href: "/wordcloud", title: "Word Cloud", desc: "Keyword frequency & text EDA", exp: 10 },
 ];
+
 
 export default function AnalyzerPage() {
   const { analysis, docName } = useDocument();

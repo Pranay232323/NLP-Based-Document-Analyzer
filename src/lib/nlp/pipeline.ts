@@ -9,7 +9,11 @@ import { chunkDocument } from "./chunking";
 import { extractEntities } from "./ner";
 import { wordSequence, buildAllModels, summarizeModel } from "./ngram";
 import { wordFrequencies } from "./wordStats";
+import { analyzeSentiment } from "./sentiment";
+import { identifyLanguage } from "./languageId";
+import { compareKeywordMethods } from "./keywords";
 import type { AnalysisResult, POSRow } from "./types";
+
 
 export function analyzeDocument(text: string, docName: string): AnalysisResult {
   const sentences = winkSentences(text).length ? winkSentences(text) : splitSentences(text);
@@ -61,6 +65,11 @@ export function analyzeDocument(text: string, docName: string): AnalysisResult {
   // Word frequency / EDA (Experiment 10).
   const keywords = wordFrequencies(text, 40);
 
+  // Advanced Experiments integrated for immediate inspection & report inclusion
+  const sentiment = analyzeSentiment(text);
+  const languageIdentification = identifyLanguage(text);
+  const keywordComparison = compareKeywordMethods(text);
+
   return {
     meta: { docName, stats, scriptValidation: preprocessing.scriptValidation },
     sentences,
@@ -75,5 +84,9 @@ export function analyzeDocument(text: string, docName: string): AnalysisResult {
     ngramSummaries,
     keywords,
     rawText: text,
+    sentiment,
+    languageIdentification,
+    keywordComparison,
   };
 }
+

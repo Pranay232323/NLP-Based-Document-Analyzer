@@ -6,8 +6,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx tests/run-all-tests.ts"
   },
+
   "dependencies": {
     "compromise": "^14.18.0",
     "dotenv": "17.3.1",

@@ -1,6 +1,16 @@
 import { getMongoDb } from "@/lib/mongodb";
 import type { AnalysisResult, SimilarityResult } from "@/lib/nlp/types";
 
+export interface ExperimentRunRecord {
+  experimentId: string;
+  experimentTitle: string;
+  moduleName: string;
+  docName?: string;
+  parameters?: Record<string, unknown>;
+  metricsSummary?: Record<string, unknown>;
+  createdAt: Date;
+}
+
 export async function saveAnalysis(docName: string, rawText: string, result: AnalysisResult) {
   const db = await getMongoDb();
   if (!db) return { persisted: false };
@@ -49,4 +59,39 @@ export async function saveReport(report: Record<string, unknown>) {
   });
 
   return { persisted: true, reportId: String(insert.insertedId) };
+}
+
+export async function saveExperimentRun(run: Omit<ExperimentRunRecord, "createdAt">) {
+  const db = await getMongoDb();
+  if (!db) return { persisted: false };
+
+  const record: ExperimentRunRecord = {
+    ...run,
+    createdAt: new Date(),
+  };
+
+  const insert = await db.collection("experiment_runs").insertOne(record);
+  return { persisted: true, runId: String(insert.insertedId) };
+}
+
+export async function getExperimentRuns(limit: number = 20) {
+  const db = await getMongoDb();
+  if (!db) return [];
+
+  const cursor = db.collection("experiment_runs")
+    .find({})
+    .sort({ createdAt: -1 })
+    .limit(limit);
+
+  const results = await cursor.toArray();
+  return results.map((doc) => ({
+    id: String(doc._id),
+    experimentId: doc.experimentId,
+    experimentTitle: doc.experimentTitle,
+    moduleName: doc.moduleName,
+    docName: doc.docName,
+    parameters: doc.parameters,
+    metricsSummary: doc.metricsSummary,
+    createdAt: doc.createdAt,
+  }));
 }

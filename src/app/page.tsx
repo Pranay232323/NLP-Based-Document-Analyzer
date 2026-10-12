@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   SplitSquareHorizontal,
+
   TextCursorInput,
   Blocks,
   Network,
@@ -10,11 +11,17 @@ import {
   Cloud,
   ArrowRight,
   BookOpenCheck,
+  Smile,
+  Target,
+  Compass,
+  Key,
+  Languages,
+  Sparkles,
 } from "lucide-react";
 import { HomeCta } from "@/components/home-cta";
 import { Card, Badge } from "@/components/ui/primitives";
 
-const MODULES = [
+const CORE_MODULES = [
   { href: "/about", title: "NLP Applications & Project Documentation", icon: BookOpenCheck, tone: "slate" as const },
   { href: "/preprocessing", title: "Text Preprocessing", icon: SplitSquareHorizontal, tone: "indigo" as const },
   { href: "/stemlemma", title: "Stemming & Lemmatization", icon: TextCursorInput, tone: "violet" as const },
@@ -27,6 +34,15 @@ const MODULES = [
   { href: "/wordcloud", title: "Word Cloud & Text Analytics", icon: Cloud, tone: "sky" as const },
 ];
 
+const ADVANCED_MODULES = [
+  { href: "/sentiment", title: "Sentiment Analysis & Polarity", icon: Smile, tone: "emerald" as const },
+  { href: "/classification", title: "Text Classification & Naive Bayes", icon: Target, tone: "indigo" as const },
+  { href: "/topic-modeling", title: "Unsupervised Topic Modeling", icon: Compass, tone: "violet" as const },
+  { href: "/keywords", title: "Keyword & Keyphrase Extraction", icon: Key, tone: "sky" as const },
+  { href: "/language-id", title: "Language Identification (Indic/Latin)", icon: Languages, tone: "amber" as const },
+  { href: "/semantic-similarity", title: "Multi-Metric Semantic Similarity", icon: Sparkles, tone: "rose" as const },
+];
+
 const PIPELINE = [
   "Upload / Paste",
   "Preprocess",
@@ -37,12 +53,15 @@ const PIPELINE = [
   "POS Tag",
   "Chunk",
   "NER",
-  "N-Gram",
+  "Sentiment",
+  "Keywords",
+  "N-Gram & Topics",
   "Word Cloud",
   "Report",
 ];
 
 export default function HomePage() {
+
   return (
     <div className="space-y-14">
       {/* HERO */}
@@ -91,13 +110,16 @@ export default function HomePage() {
       {/* MODULES GRID */}
       <section>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-900">Integrated NLP Modules</h2>
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Part I: Core Prescribed Modules</h2>
+            <p className="text-xs text-slate-500">10 foundational practical modules from the academic syllabus</p>
+          </div>
           <Link href="/experiments" className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
             View Experiment Mapping →
           </Link>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {MODULES.map((e) => {
+          {CORE_MODULES.map((e) => {
             const Icon = e.icon;
             return (
               <Link key={e.title} href={e.href}>
@@ -106,10 +128,41 @@ export default function HomePage() {
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700 group-hover:bg-indigo-600 group-hover:text-white">
                       <Icon size={17} />
                     </div>
-                    <Badge tone={e.tone}>NLP Tool</Badge>
+                    <Badge tone={e.tone}>Core Practical</Badge>
                   </div>
                   <p className="text-sm font-semibold text-slate-900">{e.title}</p>
                   <span className="mt-auto flex items-center gap-1 text-xs font-medium text-indigo-600 opacity-0 transition group-hover:opacity-100">
+                    Open module <ArrowRight size={12} />
+                  </span>
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
+
+        <div className="mt-10 mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Part II: Advanced NLP Laboratory Modules</h2>
+            <p className="text-xs text-slate-500">Machine learning, multi-lingual evaluation, and semantic analytics</p>
+          </div>
+          <Link href="/experiments" className="text-sm font-semibold text-violet-600 hover:text-violet-700">
+            Advanced Specs →
+          </Link>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {ADVANCED_MODULES.map((e) => {
+            const Icon = e.icon;
+            return (
+              <Link key={e.title} href={e.href}>
+                <Card className="group flex h-full flex-col gap-3 p-5 transition hover:-translate-y-0.5 hover:shadow-md border-violet-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-50 text-violet-700 group-hover:bg-violet-600 group-hover:text-white">
+                      <Icon size={17} />
+                    </div>
+                    <Badge tone={e.tone}>Advanced Lab</Badge>
+                  </div>
+                  <p className="text-sm font-semibold text-slate-900">{e.title}</p>
+                  <span className="mt-auto flex items-center gap-1 text-xs font-medium text-violet-600 opacity-0 transition group-hover:opacity-100">
                     Open module <ArrowRight size={12} />
                   </span>
                 </Card>
@@ -121,6 +174,7 @@ export default function HomePage() {
 
       {/* TECH STACK */}
       <section>
+
         <h2 className="mb-4 text-lg font-semibold text-slate-900">Technology Stack</h2>
         <Card className="p-6">
           <div className="grid gap-6 sm:grid-cols-3">

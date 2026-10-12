@@ -116,6 +116,19 @@ export interface DocumentMeta {
   scriptValidation: ScriptValidation;
 }
 
+// Re-export advanced experiment types for unified platform consumption
+export type { SentimentAnalysisResult } from "./sentiment";
+export type { ClassificationExperimentResult, ClassificationPrediction } from "./classification";
+export type { TopicModelingResult } from "./topicModeling";
+export type { KeywordExtractionComparison } from "./keywords";
+export type { LanguageIdentificationResult } from "./languageId";
+export type { MultiMetricSimilarityResult } from "./semanticSimilarity";
+
+import type { SentimentAnalysisResult } from "./sentiment";
+import type { TopicModelingResult } from "./topicModeling";
+import type { KeywordExtractionComparison } from "./keywords";
+import type { LanguageIdentificationResult } from "./languageId";
+
 export interface AnalysisResult {
   meta: DocumentMeta;
   sentences: string[];
@@ -130,6 +143,11 @@ export interface AnalysisResult {
   ngramSummaries: NGramModelSummary[];
   keywords: KeywordFrequency[];
   rawText: string;
+  // Advanced NLP module results (computed or cached)
+  sentiment?: SentimentAnalysisResult;
+  topics?: TopicModelingResult;
+  keywordComparison?: KeywordExtractionComparison;
+  languageIdentification?: LanguageIdentificationResult;
 }
 
 export interface SimilarityResult {
@@ -143,3 +161,4 @@ export interface SimilarityResult {
   topTermsB: { term: string; weight: number }[];
   vocabSize: number;
 }
+
