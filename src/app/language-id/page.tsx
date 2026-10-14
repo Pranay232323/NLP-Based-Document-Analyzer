@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useDocument } from "@/components/document-context";
 import {
   Card,
@@ -13,18 +13,22 @@ import {
   StatCard,
   Spinner,
 } from "@/components/ui/primitives";
+import { ExperimentPlayground } from "@/components/experiment-playground";
 import {
   identifyLanguage,
   SAMPLE_LANGUAGE_SNIPPETS,
   type LanguageIdentificationResult,
 } from "@/lib/nlp/languageId";
-import { AlertCircle, Globe, BookOpen } from "lucide-react";
+import { AlertCircle, Globe, BookOpen, Download, Search } from "lucide-react";
 
 export default function LanguageIdPage() {
-  const { analysis, docName } = useDocument();
-  const [inputText, setInputText] = useState("");
+  const { analysis, rawText, docName } = useDocument();
+  const [inputText, setInputText] = useState(
+    () => rawText || SAMPLE_LANGUAGE_SNIPPETS[0].text
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [markerSearch, setMarkerSearch] = useState("");
 
   const [result, setResult] = useState<LanguageIdentificationResult>(() => {
     if (analysis?.rawText) {
@@ -33,30 +37,70 @@ export default function LanguageIdPage() {
     return identifyLanguage(SAMPLE_LANGUAGE_SNIPPETS[0].text);
   });
 
-  function handleUseActiveDoc() {
-    if (analysis?.rawText) {
-      setInputText(analysis.rawText);
-      setResult(identifyLanguage(analysis.rawText));
+  useEffect(() => {
+    if (rawText) {
+      setInputText(rawText);
+      setResult(identifyLanguage(rawText));
       setError(null);
     }
-  }
+  }, [rawText]);
 
-  function handleIdentify() {
-    const textToUse = inputText.trim() || analysis?.rawText || SAMPLE_LANGUAGE_SNIPPETS[0].text;
-    if (!textToUse.trim()) {
+  function handleIdentify(textToUse?: string) {
+    const text = (textToUse ?? inputText).trim() || rawText || SAMPLE_LANGUAGE_SNIPPETS[0].text;
+    if (!text.trim()) {
       setError("Please provide text for language identification.");
       return;
     }
     setLoading(true);
     setError(null);
     try {
-      setResult(identifyLanguage(textToUse));
+      setResult(identifyLanguage(text));
     } catch {
       setError("Language identification failed.");
     } finally {
       setLoading(false);
     }
   }
+
+  function exportJSON() {
+    const blob = new Blob([JSON.stringify(result, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `language-id-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportCSV() {
+    const headers = ["Marker", "Language", "Significance"];
+    const rows = result.markersDetected.map((m) => [
+      `"${m.word}"`,
+      m.language,
+      `"${m.significance}"`,
+    ]);
+    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `language-markers-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  const filteredMarkers = useMemo(() => {
+    if (!markerSearch.trim()) return result.markersDetected;
+    const q = markerSearch.toLowerCase();
+    return result.markersDetected.filter(
+      (m) =>
+        m.word.toLowerCase().includes(q) ||
+        m.language.toLowerCase().includes(q) ||
+        m.significance.toLowerCase().includes(q)
+    );
+  }, [result.markersDetected, markerSearch]);
 
   const tone =
     result.detectedLanguage === "English"
@@ -70,9 +114,21 @@ export default function LanguageIdPage() {
   return (
     <div className="space-y-6">
       <SectionHeading
-        eyebrow="Advanced NLP Lab"
+        eyebrow="Advanced NLP Lab · Exp 15"
         title="Language Identification & Script Analysis"
         description="Identifies language (English, Hindi, Marathi) using Unicode script analysis, character n-grams, and grammatical markers. Explains why script detection alone cannot differentiate Devanagari languages."
+      />
+
+      {/* GLOBAL INTERACTIVE PLAYGROUND */}
+      <ExperimentPlayground
+        moduleTitle="Exp 15 · Language Identification"
+        placeholder="Type or paste any text in English, Hindi, Marathi, or mixed scripts to analyze script and language..."
+        onAnalyzeComplete={() => {
+          if (rawText) {
+            setInputText(rawText);
+            setResult(identifyLanguage(rawText));
+          }
+        }}
       />
 
       {/* INPUT AREA */}
@@ -81,11 +137,16 @@ export default function LanguageIdPage() {
           title="Multilingual Text Input"
           subtitle="Paste English or Indic text in Latin or Devanagari script"
           action={
-            analysis ? (
-              <SecondaryButton onClick={handleUseActiveDoc} className="text-xs">
-                Load Active Document ({docName})
+            <div className="flex items-center gap-2">
+              <SecondaryButton onClick={exportJSON} className="text-xs">
+                <Download size={13} className="mr-1" />
+                JSON
               </SecondaryButton>
-            ) : null
+              <SecondaryButton onClick={exportCSV} className="text-xs">
+                <Download size={13} className="mr-1" />
+                CSV
+              </SecondaryButton>
+            </div>
           }
         />
         <CardBody className="space-y-4">
@@ -97,8 +158,7 @@ export default function LanguageIdPage() {
                 type="button"
                 onClick={() => {
                   setInputText(sample.text);
-                  setResult(identifyLanguage(sample.text));
-                  setError(null);
+                  handleIdentify(sample.text);
                 }}
                 className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-indigo-50 hover:text-indigo-600"
               >
@@ -115,6 +175,17 @@ export default function LanguageIdPage() {
             className="w-full rounded-xl border border-slate-200 p-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
 
+          <div className="flex items-center justify-between text-xs text-slate-500">
+            <span>
+              {inputText.trim() ? inputText.trim().split(/\s+/).length : 0} words · {inputText.length} characters
+            </span>
+            {docName && (
+              <span className="truncate max-w-xs text-slate-400">
+                Active context: {docName}
+              </span>
+            )}
+          </div>
+
           {error && (
             <div className="flex items-center gap-2 rounded-lg bg-rose-50 p-3 text-xs text-rose-700">
               <AlertCircle size={15} />
@@ -123,7 +194,7 @@ export default function LanguageIdPage() {
           )}
 
           <div className="flex items-center gap-2">
-            <PrimaryButton onClick={handleIdentify} disabled={loading}>
+            <PrimaryButton onClick={() => handleIdentify()} disabled={loading}>
               {loading ? <Spinner size={14} /> : "Identify Language"}
             </PrimaryButton>
             <SecondaryButton onClick={() => setInputText("")}>Clear</SecondaryButton>
@@ -174,7 +245,7 @@ export default function LanguageIdPage() {
               <div className="h-2 w-full rounded-full bg-slate-100">
                 <div
                   style={{ width: `${result.script.latinRatio * 100}%` }}
-                  className="h-2 rounded-full bg-indigo-600"
+                  className="h-2 rounded-full bg-indigo-600 transition-all"
                 />
               </div>
 
@@ -187,7 +258,7 @@ export default function LanguageIdPage() {
               <div className="h-2 w-full rounded-full bg-slate-100">
                 <div
                   style={{ width: `${result.script.devanagariRatio * 100}%` }}
-                  className="h-2 rounded-full bg-amber-500"
+                  className="h-2 rounded-full bg-amber-500 transition-all"
                 />
               </div>
             </div>
@@ -210,64 +281,81 @@ export default function LanguageIdPage() {
               </Badge>
             }
           />
-          <CardBody className="overflow-x-auto">
-            {result.markersDetected.length > 0 ? (
-              <table className="w-full min-w-[340px] text-left text-xs">
-                <thead>
-                  <tr className="border-b border-slate-200 text-slate-500">
-                    <th className="py-2 pr-3">Marker</th>
-                    <th className="py-2 pr-3">Target Language</th>
-                    <th className="py-2 pr-3">Linguistic Function</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.markersDetected.map((m, idx) => (
-                    <tr key={idx} className="border-b border-slate-100">
-                      <td className="py-2 pr-3 font-semibold text-slate-800">{m.word}</td>
-                      <td className="py-2 pr-3">
-                        <Badge
-                          tone={
-                            m.language === "English"
-                              ? "indigo"
-                              : m.language === "Hindi"
-                              ? "amber"
-                              : "rose"
-                          }
-                        >
-                          {m.language}
-                        </Badge>
-                      </td>
-                      <td className="py-2 pr-3 text-slate-600">{m.significance}</td>
+          <CardBody className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+              <input
+                type="text"
+                value={markerSearch}
+                onChange={(e) => setMarkerSearch(e.target.value)}
+                placeholder="Filter detected markers..."
+                className="w-full rounded-lg border border-slate-200 pl-8 pr-3 py-1.5 text-xs focus:border-indigo-500 focus:outline-none"
+              />
+            </div>
+            <div className="overflow-x-auto">
+              {filteredMarkers.length > 0 ? (
+                <table className="w-full min-w-[340px] text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-slate-500">
+                      <th className="py-2 pr-3">Marker</th>
+                      <th className="py-2 pr-3">Target Language</th>
+                      <th className="py-2 pr-3">Linguistic Function</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p className="py-4 text-center text-xs text-slate-400 italic">
-                No closed-class grammatical markers detected in the sample.
-              </p>
-            )}
+                  </thead>
+                  <tbody>
+                    {filteredMarkers.map((marker, idx) => (
+                      <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/50">
+                        <td className="py-2 pr-3 font-semibold text-slate-900">{marker.word}</td>
+                        <td className="py-2 pr-3">
+                          <Badge
+                            tone={
+                              marker.language === "Hindi"
+                                ? "amber"
+                                : marker.language === "Marathi"
+                                ? "rose"
+                                : "indigo"
+                            }
+                          >
+                            {marker.language}
+                          </Badge>
+                        </td>
+                        <td className="py-2 pr-3 text-slate-600">{marker.significance}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="py-3 text-xs text-slate-400 italic">
+                  {result.markersDetected.length === 0
+                    ? "No specific Hindi/Marathi function markers detected."
+                    : "No markers match your search."}
+                </p>
+              )}
+            </div>
           </CardBody>
         </Card>
       </div>
 
-      {/* CRITICAL EDUCATIONAL INSIGHT */}
+      {/* EDUCATIONAL SCRIPT VS LANGUAGE NOTE */}
       <Card>
         <CardHeader
-          title="Linguistic Theory: Script vs. Language"
-          subtitle="Why Devanagari detection alone cannot differentiate Hindi and Marathi"
+          title="Linguistic Principle: Script Detection vs Language Discrimination"
+          subtitle="Understanding why orthography and vocabulary are distinct"
+          action={
+            <Badge tone="violet" className="flex items-center gap-1">
+              <BookOpen size={12} />
+              Educational Insight
+            </Badge>
+          }
         />
-        <CardBody className="space-y-3 text-xs text-slate-700">
-          <div className="flex items-start gap-3 rounded-xl bg-indigo-50/70 p-4 text-indigo-900">
-            <BookOpen size={18} className="mt-0.5 shrink-0 text-indigo-600" />
-            <div className="space-y-1.5 leading-relaxed">
-              <p className="font-semibold">{result.explanation.linguisticInsight}</p>
-              <p className="text-indigo-800">{result.explanation.scriptVsLanguageExplanation}</p>
-              <p className="text-[11px] text-indigo-700">
-                Key differentiator: Marathi utilizes the retroflex lateral flap consonant &ldquo;ळ&rdquo; (U+0933)
-                and agglutinative inflections like &ldquo;च्या, मध्ये, आणि&rdquo;, whereas Hindi uses postpositions like &ldquo;का, के, में, और&rdquo;.
-              </p>
-            </div>
+        <CardBody className="space-y-3 text-xs text-slate-600">
+          <div className="rounded-lg bg-indigo-50/60 p-3 leading-relaxed text-indigo-900">
+            <span className="font-semibold text-indigo-950">Key Linguistic Takeaway: </span>
+            {result.explanation.scriptVsLanguageExplanation}
+          </div>
+          <div className="rounded-lg border border-slate-100 p-3 leading-relaxed">
+            <span className="font-semibold text-slate-800">Morphological Analysis: </span>
+            {result.explanation.linguisticInsight}
           </div>
         </CardBody>
       </Card>

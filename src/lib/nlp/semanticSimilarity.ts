@@ -8,6 +8,7 @@
 
 import { tokenizeWords } from "./preprocessing";
 import { isStopword } from "./stopwords";
+import { lemmatizeWord } from "./stemLemma";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const winkLemmatizer = require("wink-lemmatizer");
 
@@ -42,14 +43,22 @@ export interface MultiMetricSimilarityResult {
 function cleanTokens(text: string): string[] {
   return tokenizeWords(text)
     .map((w: string) => w.toLowerCase())
-    .filter((w: string) => w.length > 1 && /^[a-z]+$/.test(w));
+    .filter((w: string) =>
+      ((/^[a-z]+$/.test(w) && w.length > 1) || (/^[\u0900-\u097F]+$/.test(w) && w.length >= 2))
+    );
 }
 
 function filterContentTokens(tokens: string[]): string[] {
-  return tokens.filter((t) => !isStopword(t) && t.length > 2);
+  return tokens.filter((t) =>
+    !isStopword(t) &&
+    ((/^[a-z]+$/.test(t) && t.length > 2) || (/^[\u0900-\u097F]+$/.test(t) && t.length >= 2))
+  );
 }
 
 function lemmatizeToken(word: string): string {
+  if (/[\u0900-\u097F]/.test(word)) {
+    return lemmatizeWord(word);
+  }
   const lower = word.toLowerCase();
   return (
     winkLemmatizer.noun(lower) ||
@@ -212,18 +221,29 @@ export function computeMultiMetricSimilarity(textA: string, textB: string): Mult
 
 export const SAMPLE_SIMILARITY_PAIRS = [
   {
-    label: "Paraphrased Sentences (Semantic Match)",
+    label: "Paraphrased Sentences (English Semantic Match)",
     textA: "The software engineering student implemented a machine learning algorithm to classify research articles.",
     textB: "A computer science scholar developed an ML model for categorizing scientific papers.",
   },
   {
-    label: "Near-Duplicate Academic Paragraphs",
+    label: "Near-Duplicate Academic Paragraphs (English)",
     textA: "Natural language processing combines computational linguistics with statistical models to process unstructured text documents efficiently.",
     textB: "Natural language processing utilizes computational linguistics and statistical models to analyze unstructured documents with high efficiency.",
   },
   {
-    label: "Completely Unrelated Topics",
+    label: "Completely Unrelated Topics (English)",
     textA: "The soccer team won the tournament final after scoring a penalty shootout in extra time.",
     textB: "Quantum cryptography relies on the uncertainty principle to secure communications against eavesdropping.",
   },
+  {
+    label: "Hindi Semantic Paraphrase (हिंदी)",
+    textA: "वैज्ञानिकों ने कृत्रिम बुद्धिमत्ता और मशीन लर्निंग का उपयोग करके जटिल डेटा का विश्लेषण किया।",
+    textB: "शोधकर्ताओं ने एआई और कम्प्यूटेशनल मॉडलों की मदद से विशाल आंकड़ों का गहन अध्ययन किया।",
+  },
+  {
+    label: "Marathi Paraphrase (मराठी)",
+    textA: "संगणक अभियंत्याने मजकूर वर्गीकरणासाठी प्रगत अल्गोरिदम तयार केले.",
+    textB: "माहिती तंत्रज्ञान संशोधकाने विविध दस्तऐवज वर्गीकृत करण्यासाठी नवे मॉडेल विकसित केले.",
+  },
 ];
+

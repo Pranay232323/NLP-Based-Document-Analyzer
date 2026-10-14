@@ -4,11 +4,13 @@
 
 export interface ScriptValidation {
   isValid: boolean;
-  label: "Valid Latin Script" | "Invalid or Mixed Script";
+  label: "Valid Latin Script" | "Valid Devanagari Script" | "Invalid or Mixed Script";
   latinChars: number;
+  devanagariChars?: number;
   nonLatinChars: number;
   totalAlphaChars: number;
   latinRatio: number;
+  devanagariRatio?: number;
 }
 
 export interface PreprocessingResult {

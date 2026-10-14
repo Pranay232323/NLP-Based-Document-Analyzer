@@ -22,7 +22,7 @@ export function analyzeDocument(text: string, docName: string): AnalysisResult {
 
   // POS tagging (Experiment 6) over the whole document.
   const taggedTokens = posTagDocument(text);
-  const wordTagged = taggedTokens.filter((t) => /^[A-Za-z]+(?:'[A-Za-z]+)?$/.test(t.value));
+  const wordTagged = taggedTokens.filter((t) => /^[A-Za-z]+(?:'[A-Za-z]+)?$/.test(t.value) || /^[\u0900-\u097F]+$/.test(t.value));
   const pos: POSRow[] = taggedTokens
     .filter((t) => !isPunctuationTag(t.pos))
     .map((t) => ({ word: t.value, tag: t.pos, description: describeTag(t.pos) }));

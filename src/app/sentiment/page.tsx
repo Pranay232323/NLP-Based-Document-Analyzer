@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useDocument } from "@/components/document-context";
 import {
   Card,
@@ -13,33 +13,45 @@ import {
   StatCard,
   Spinner,
 } from "@/components/ui/primitives";
+import { ExperimentPlayground } from "@/components/experiment-playground";
 import {
   analyzeSentiment,
   SAMPLE_SENTIMENT_TEXTS,
   type SentimentAnalysisResult,
 } from "@/lib/nlp/sentiment";
-import { AlertCircle, ThumbsUp, ThumbsDown, MinusCircle, Lightbulb } from "lucide-react";
+import {
+  AlertCircle,
+  ThumbsUp,
+  ThumbsDown,
+  MinusCircle,
+  Lightbulb,
+  Download,
+  Search,
+} from "lucide-react";
 
 export default function SentimentPage() {
-  const { analysis, docName } = useDocument();
-  const [inputText, setInputText] = useState("");
+  const { rawText, docName } = useDocument();
+  const [inputText, setInputText] = useState(
+    () => rawText || SAMPLE_SENTIMENT_TEXTS[0].text
+  );
   const [activeTab, setActiveTab] = useState<"overview" | "sentences" | "tokens">("overview");
-  const [result, setResult] = useState<SentimentAnalysisResult | null>(() => {
-    if (analysis?.rawText) {
-      return analyzeSentiment(analysis.rawText);
-    }
-    return null;
+  const [result, setResult] = useState<SentimentAnalysisResult>(() => {
+    const textToAnalyze = rawText || SAMPLE_SENTIMENT_TEXTS[0].text;
+    return analyzeSentiment(textToAnalyze);
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sentenceSearch, setSentenceSearch] = useState("");
+  const [tokenSearch, setTokenSearch] = useState("");
 
-  function handleUseActiveDoc() {
-    if (analysis?.rawText) {
-      setInputText(analysis.rawText.slice(0, 3000));
-      setResult(analyzeSentiment(analysis.rawText.slice(0, 3000)));
+  // Sync when document context changes
+  useEffect(() => {
+    if (rawText) {
+      setInputText(rawText);
+      setResult(analyzeSentiment(rawText));
       setError(null);
     }
-  }
+  }, [rawText]);
 
   function handleLoadSample(sampleText: string) {
     setInputText(sampleText);
@@ -66,44 +78,114 @@ export default function SentimentPage() {
 
   function handleClear() {
     setInputText("");
-    setResult(null);
     setError(null);
   }
 
+  function exportJSON() {
+    const blob = new Blob([JSON.stringify(result, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sentiment-analysis-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportCSV() {
+    const headers = ["Index", "Sentence", "Sentiment", "RawScore", "PositiveWords", "NegativeWords"];
+    const rows = result.sentenceBreakdown.map((s, idx) => [
+      idx + 1,
+      `"${s.sentence.replace(/"/g, '""')}"`,
+      s.label,
+      s.score,
+      `"${s.positiveWords.join(", ")}"`,
+      `"${s.negativeWords.join(", ")}"`,
+    ]);
+    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sentiment-sentences-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  const filteredSentences = useMemo(() => {
+    if (!sentenceSearch.trim()) return result.sentenceBreakdown;
+    const q = sentenceSearch.toLowerCase();
+    return result.sentenceBreakdown.filter(
+      (s) =>
+        s.sentence.toLowerCase().includes(q) ||
+        s.label.toLowerCase().includes(q) ||
+        s.positiveWords.some((w) => w.toLowerCase().includes(q)) ||
+        s.negativeWords.some((w) => w.toLowerCase().includes(q))
+    );
+  }, [result.sentenceBreakdown, sentenceSearch]);
+
+  const filteredTokens = useMemo(() => {
+    if (!tokenSearch.trim()) return result.tokenContributions;
+    const q = tokenSearch.toLowerCase();
+    return result.tokenContributions.filter(
+      (tc) =>
+        tc.token.toLowerCase().includes(q) ||
+        tc.context.toLowerCase().includes(q)
+    );
+  }, [result.tokenContributions, tokenSearch]);
+
   const labelTone =
-    result?.label === "Positive" ? "emerald" : result?.label === "Negative" ? "rose" : "slate";
+    result.label === "Positive" ? "emerald" : result.label === "Negative" ? "rose" : "slate";
 
   const LabelIcon =
-    result?.label === "Positive"
+    result.label === "Positive"
       ? ThumbsUp
-      : result?.label === "Negative"
+      : result.label === "Negative"
       ? ThumbsDown
       : MinusCircle;
 
   return (
     <div className="space-y-6">
       <SectionHeading
-        eyebrow="Advanced NLP Lab"
+        eyebrow="Advanced NLP Lab · Exp 11"
         title="Sentiment Analysis & Polarity Scoring"
-        description="Calculates emotional polarity (positive, negative, neutral) and subjectivity scores using an explainable lexicon model with negation detection and intensifier weighting."
+        description="Calculates emotional polarity (positive, negative, neutral) and subjectivity scores using an explainable lexicon model with negation detection, intensifier weighting, and sentence-level heatmaps across English, Hindi, and Marathi."
+      />
+
+      {/* GLOBAL INTERACTIVE PLAYGROUND */}
+      <ExperimentPlayground
+        moduleTitle="Exp 11 · Sentiment Analysis"
+        placeholder="Type or paste any customer review, critique, or document excerpt in English, Hindi, or Marathi to evaluate sentiment..."
+        onAnalyzeComplete={() => {
+          if (rawText) {
+            setInputText(rawText);
+            setResult(analyzeSentiment(rawText));
+          }
+        }}
       />
 
       {/* SAMPLE SELECTOR & INPUT AREA */}
       <Card>
         <CardHeader
-          title="Experiment Input"
-          subtitle="Paste custom academic text or choose an educational test sample"
+          title="Direct Text Sentiment Inspector"
+          subtitle="Paste custom academic text or choose an educational test sample in English, Hindi, or Marathi"
           action={
-            analysis ? (
-              <SecondaryButton onClick={handleUseActiveDoc} className="text-xs">
-                Load Active Document ({docName})
+            <div className="flex items-center gap-2">
+              <SecondaryButton onClick={exportJSON} className="text-xs">
+                <Download size={13} className="mr-1" />
+                JSON
               </SecondaryButton>
-            ) : null
+              <SecondaryButton onClick={exportCSV} className="text-xs">
+                <Download size={13} className="mr-1" />
+                CSV
+              </SecondaryButton>
+            </div>
           }
         />
         <CardBody className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-slate-500">Sample Inputs:</span>
+            <span className="text-xs font-semibold text-slate-500">Multilingual Samples:</span>
             {SAMPLE_SENTIMENT_TEXTS.map((sample) => (
               <button
                 key={sample.label}
@@ -117,12 +199,23 @@ export default function SentimentPage() {
           </div>
 
           <textarea
-            rows={5}
+            rows={4}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="Type or paste student feedback, reviews, or academic critique..."
+            placeholder="Type or paste student feedback, reviews, or academic critique in any language..."
             className="w-full rounded-xl border border-slate-200 p-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
+
+          <div className="flex items-center justify-between text-xs text-slate-500">
+            <span>
+              {inputText.trim() ? inputText.trim().split(/\s+/).length : 0} words · {inputText.length} characters
+            </span>
+            {docName && (
+              <span className="truncate max-w-xs text-slate-400">
+                Document context: {docName}
+              </span>
+            )}
+          </div>
 
           {error && (
             <div className="flex items-center gap-2 rounded-lg bg-rose-50 p-3 text-xs text-rose-700">
@@ -141,146 +234,156 @@ export default function SentimentPage() {
       </Card>
 
       {/* RESULTS DISPLAY */}
-      {result && (
-        <div className="space-y-6">
-          {/* STATS OVERVIEW */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <StatCard
-              label="Predicted Sentiment"
-              value={result.label}
-              tone={labelTone}
-            />
-            <StatCard
-              label="Normalized Score"
-              value={`${result.normalizedScore > 0 ? "+" : ""}${result.normalizedScore}`}
-              tone={result.normalizedScore >= 0 ? "emerald" : "rose"}
-            />
-            <StatCard
-              label="Certainty Confidence"
-              value={`${(result.confidence * 100).toFixed(0)}%`}
-              tone="indigo"
-            />
-            <StatCard
-              label="Subjectivity Index"
-              value={`${(result.subjectivity * 100).toFixed(0)}%`}
-              tone="violet"
-            />
-          </div>
+      <div className="space-y-6">
+        {/* STATS OVERVIEW */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard
+            label="Predicted Sentiment"
+            value={result.label}
+            tone={labelTone}
+          />
+          <StatCard
+            label="Normalized Score"
+            value={`${result.normalizedScore > 0 ? "+" : ""}${result.normalizedScore}`}
+            tone={result.normalizedScore >= 0 ? "emerald" : "rose"}
+          />
+          <StatCard
+            label="Certainty Confidence"
+            value={`${(result.confidence * 100).toFixed(0)}%`}
+            tone="indigo"
+          />
+          <StatCard
+            label="Subjectivity Index"
+            value={`${(result.subjectivity * 100).toFixed(0)}%`}
+            tone="violet"
+          />
+        </div>
 
-          {/* POLARITY DISTRIBUTION BAR */}
-          <Card>
-            <CardHeader
-              title="Polarity Score Breakdown"
-              subtitle={`Total tokens: ${result.positiveTokensCount + result.negativeTokensCount + result.neutralTokensCount} | Comparative polarity: ${result.comparative}`}
-              action={
-                <Badge tone={labelTone} className="flex items-center gap-1">
-                  <LabelIcon size={12} />
-                  {result.label}
-                </Badge>
-              }
-            />
-            <CardBody className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs font-medium text-slate-600">
-                  <span className="text-emerald-700">Positive Tokens ({result.positiveTokensCount})</span>
-                  <span className="text-slate-500">Neutral ({result.neutralTokensCount})</span>
-                  <span className="text-rose-700">Negative Tokens ({result.negativeTokensCount})</span>
-                </div>
-                <div className="flex h-3.5 w-full overflow-hidden rounded-full bg-slate-200">
-                  <div
-                    style={{
-                      width: `${Math.max(
-                        0,
-                        (result.positiveTokensCount /
-                          Math.max(1, result.positiveTokensCount + result.negativeTokensCount + result.neutralTokensCount)) *
-                          100
-                      )}%`,
-                    }}
-                    className="bg-emerald-500 transition-all"
-                  />
-                  <div
-                    style={{
-                      width: `${Math.max(
-                        0,
-                        (result.neutralTokensCount /
-                          Math.max(1, result.positiveTokensCount + result.negativeTokensCount + result.neutralTokensCount)) *
-                          100
-                      )}%`,
-                    }}
-                    className="bg-slate-300 transition-all"
-                  />
-                  <div
-                    style={{
-                      width: `${Math.max(
-                        0,
-                        (result.negativeTokensCount /
-                          Math.max(1, result.positiveTokensCount + result.negativeTokensCount + result.neutralTokensCount)) *
-                          100
-                      )}%`,
-                    }}
-                    className="bg-rose-500 transition-all"
-                  />
-                </div>
+        {/* POLARITY DISTRIBUTION BAR */}
+        <Card>
+          <CardHeader
+            title="Polarity Score Breakdown"
+            subtitle={`Total tokens: ${result.positiveTokensCount + result.negativeTokensCount + result.neutralTokensCount} | Comparative polarity: ${result.comparative}`}
+            action={
+              <Badge tone={labelTone} className="flex items-center gap-1">
+                <LabelIcon size={12} />
+                {result.label}
+              </Badge>
+            }
+          />
+          <CardBody className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs font-medium text-slate-600">
+                <span className="text-emerald-700">Positive Tokens ({result.positiveTokensCount})</span>
+                <span className="text-slate-500">Neutral ({result.neutralTokensCount})</span>
+                <span className="text-rose-700">Negative Tokens ({result.negativeTokensCount})</span>
               </div>
-
-              {/* TABS FOR DEEP INSPECTION */}
-              <div className="flex border-b border-slate-200 text-xs font-medium text-slate-500">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("overview")}
-                  className={`border-b-2 px-3 py-2 ${
-                    activeTab === "overview"
-                      ? "border-indigo-600 text-indigo-600"
-                      : "border-transparent hover:text-slate-800"
-                  }`}
-                >
-                  Algorithm Pipeline
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("sentences")}
-                  className={`border-b-2 px-3 py-2 ${
-                    activeTab === "sentences"
-                      ? "border-indigo-600 text-indigo-600"
-                      : "border-transparent hover:text-slate-800"
-                  }`}
-                >
-                  Sentence Breakdown ({result.sentenceBreakdown.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("tokens")}
-                  className={`border-b-2 px-3 py-2 ${
-                    activeTab === "tokens"
-                      ? "border-indigo-600 text-indigo-600"
-                      : "border-transparent hover:text-slate-800"
-                  }`}
-                >
-                  Token Contributions ({result.tokenContributions.length})
-                </button>
+              <div className="flex h-3.5 w-full overflow-hidden rounded-full bg-slate-200">
+                <div
+                  style={{
+                    width: `${Math.max(
+                      0,
+                      (result.positiveTokensCount /
+                        Math.max(1, result.positiveTokensCount + result.negativeTokensCount + result.neutralTokensCount)) *
+                        100
+                    )}%`,
+                  }}
+                  className="bg-emerald-500 transition-all"
+                />
+                <div
+                  style={{
+                    width: `${Math.max(
+                      0,
+                      (result.neutralTokensCount /
+                        Math.max(1, result.positiveTokensCount + result.negativeTokensCount + result.neutralTokensCount)) *
+                        100
+                    )}%`,
+                  }}
+                  className="bg-slate-300 transition-all"
+                />
+                <div
+                  style={{
+                    width: `${Math.max(
+                      0,
+                      (result.negativeTokensCount /
+                        Math.max(1, result.positiveTokensCount + result.negativeTokensCount + result.neutralTokensCount)) *
+                        100
+                    )}%`,
+                  }}
+                  className="bg-rose-500 transition-all"
+                />
               </div>
+            </div>
 
-              {activeTab === "overview" && (
-                <div className="space-y-3 pt-2 text-xs text-slate-600">
-                  <p className="font-semibold text-slate-800">Processing Steps:</p>
-                  <ol className="list-inside list-decimal space-y-1">
-                    {result.explanation.preprocessingSteps.map((step) => (
-                      <li key={step}>{step}</li>
-                    ))}
-                  </ol>
-                  <p className="mt-3 font-semibold text-slate-800">Decision Criterion:</p>
-                  <p className="rounded-lg bg-slate-50 p-2 font-mono text-[11px] text-slate-700">
-                    {result.explanation.decisionRule}
-                  </p>
+            {/* TABS FOR DEEP INSPECTION */}
+            <div className="flex border-b border-slate-200 text-xs font-medium text-slate-500">
+              <button
+                type="button"
+                onClick={() => setActiveTab("overview")}
+                className={`border-b-2 px-3 py-2 ${
+                  activeTab === "overview"
+                    ? "border-indigo-600 text-indigo-600"
+                    : "border-transparent hover:text-slate-800"
+                }`}
+              >
+                Algorithm Pipeline
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("sentences")}
+                className={`border-b-2 px-3 py-2 ${
+                  activeTab === "sentences"
+                    ? "border-indigo-600 text-indigo-600"
+                    : "border-transparent hover:text-slate-800"
+                }`}
+              >
+                Sentence Breakdown ({result.sentenceBreakdown.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("tokens")}
+                className={`border-b-2 px-3 py-2 ${
+                  activeTab === "tokens"
+                    ? "border-indigo-600 text-indigo-600"
+                    : "border-transparent hover:text-slate-800"
+                }`}
+              >
+                Token Contributions ({result.tokenContributions.length})
+              </button>
+            </div>
+
+            {activeTab === "overview" && (
+              <div className="space-y-3 pt-2 text-xs text-slate-600">
+                <p className="font-semibold text-slate-800">Processing Steps:</p>
+                <ol className="list-inside list-decimal space-y-1">
+                  {result.explanation.preprocessingSteps.map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </ol>
+                <p className="mt-3 font-semibold text-slate-800">Decision Criterion:</p>
+                <p className="rounded-lg bg-slate-50 p-2 font-mono text-[11px] text-slate-700">
+                  {result.explanation.decisionRule}
+                </p>
+              </div>
+            )}
+
+            {activeTab === "sentences" && (
+              <div className="space-y-3 pt-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={sentenceSearch}
+                    onChange={(e) => setSentenceSearch(e.target.value)}
+                    placeholder="Filter sentences by text or polarity..."
+                    className="w-full rounded-lg border border-slate-200 pl-8 pr-3 py-1.5 text-xs focus:border-indigo-500 focus:outline-none"
+                  />
                 </div>
-              )}
-
-              {activeTab === "sentences" && (
-                <div className="space-y-2 pt-2">
-                  {result.sentenceBreakdown.map((s, idx) => (
+                <div className="space-y-2">
+                  {filteredSentences.map((s, idx) => (
                     <div
                       key={idx}
-                      className="rounded-xl border border-slate-100 bg-slate-50/60 p-3 text-xs"
+                      className="rounded-xl border border-slate-100 bg-slate-50/60 p-3 text-xs transition hover:border-slate-300"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-semibold text-slate-700">Sentence {idx + 1}</span>
@@ -296,16 +399,16 @@ export default function SentimentPage() {
                           {s.label} ({s.score > 0 ? `+${s.score}` : s.score})
                         </Badge>
                       </div>
-                      <p className="mt-1 text-slate-600 italic">&ldquo;{s.sentence}&rdquo;</p>
+                      <p className="mt-1 text-slate-700 italic">&ldquo;{s.sentence}&rdquo;</p>
                       {(s.positiveWords.length > 0 || s.negativeWords.length > 0) && (
                         <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
                           {s.positiveWords.length > 0 && (
-                            <span className="text-emerald-700">
+                            <span className="text-emerald-700 font-medium">
                               Positive: {s.positiveWords.join(", ")}
                             </span>
                           )}
                           {s.negativeWords.length > 0 && (
-                            <span className="text-rose-700">
+                            <span className="text-rose-700 font-medium">
                               Negative: {s.negativeWords.join(", ")}
                             </span>
                           )}
@@ -313,11 +416,28 @@ export default function SentimentPage() {
                       )}
                     </div>
                   ))}
+                  {filteredSentences.length === 0 && (
+                    <p className="text-center py-4 text-xs text-slate-400">
+                      No sentences match your filter.
+                    </p>
+                  )}
                 </div>
-              )}
+              </div>
+            )}
 
-              {activeTab === "tokens" && (
-                <div className="overflow-x-auto pt-2">
+            {activeTab === "tokens" && (
+              <div className="space-y-3 pt-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={tokenSearch}
+                    onChange={(e) => setTokenSearch(e.target.value)}
+                    placeholder="Search contributing tokens..."
+                    className="w-full rounded-lg border border-slate-200 pl-8 pr-3 py-1.5 text-xs focus:border-indigo-500 focus:outline-none"
+                  />
+                </div>
+                <div className="overflow-x-auto">
                   <table className="w-full min-w-[500px] text-left text-xs">
                     <thead>
                       <tr className="border-b border-slate-200 text-slate-500">
@@ -329,8 +449,8 @@ export default function SentimentPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {result.tokenContributions.map((tc, idx) => (
-                        <tr key={idx} className="border-b border-slate-100">
+                      {filteredTokens.map((tc, idx) => (
+                        <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/50">
                           <td className="py-2 pr-4 font-semibold text-slate-800">{tc.token}</td>
                           <td className="py-2 pr-4 text-slate-600">{tc.baseScore}</td>
                           <td className="py-2 pr-4 text-slate-600">
@@ -348,33 +468,38 @@ export default function SentimentPage() {
                       ))}
                     </tbody>
                   </table>
-                </div>
-              )}
-            </CardBody>
-          </Card>
-
-          {/* EDUCATIONAL LIMITATIONS & METHOD NOTES */}
-          <Card>
-            <CardHeader
-              title="Method Limitations & Academic Notes"
-              subtitle="Where lexicon-based sentiment analysis succeeds and fails"
-            />
-            <CardBody className="space-y-3 text-xs text-slate-600">
-              <div className="flex items-start gap-2 rounded-lg bg-amber-50/80 p-3 text-amber-900">
-                <Lightbulb size={16} className="mt-0.5 shrink-0 text-amber-600" />
-                <div>
-                  <p className="font-semibold">Why Sentiment Models Can Be Inaccurate:</p>
-                  <ul className="mt-1 list-inside list-disc space-y-1">
-                    {result.explanation.knownLimitations.map((lim, i) => (
-                      <li key={i}>{lim}</li>
-                    ))}
-                  </ul>
+                  {filteredTokens.length === 0 && (
+                    <p className="text-center py-4 text-xs text-slate-400">
+                      No contributing sentiment tokens match your search.
+                    </p>
+                  )}
                 </div>
               </div>
-            </CardBody>
-          </Card>
-        </div>
-      )}
+            )}
+          </CardBody>
+        </Card>
+
+        {/* EDUCATIONAL LIMITATIONS & METHOD NOTES */}
+        <Card>
+          <CardHeader
+            title="Method Limitations & Academic Notes"
+            subtitle="Where lexicon-based sentiment analysis succeeds and fails"
+          />
+          <CardBody className="space-y-3 text-xs text-slate-600">
+            <div className="flex items-start gap-2 rounded-lg bg-amber-50/80 p-3 text-amber-900">
+              <Lightbulb size={16} className="mt-0.5 shrink-0 text-amber-600" />
+              <div>
+                <p className="font-semibold">Why Sentiment Models Can Be Inaccurate:</p>
+                <ul className="mt-1 list-inside list-disc space-y-1">
+                  {result.explanation.knownLimitations.map((lim, i) => (
+                    <li key={i}>{lim}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+      </div>
     </div>
   );
 }

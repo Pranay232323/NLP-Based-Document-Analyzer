@@ -80,7 +80,10 @@ export function runTopicModeling(
   const docTokens = cleanDocs.map((doc) =>
     tokenizeWords(doc)
       .map((w: string) => w.toLowerCase())
-      .filter((w: string) => w.length > 2 && !isStopword(w) && /^[a-z]+$/.test(w))
+      .filter((w: string) =>
+        ((/^[a-z]+$/.test(w) && w.length > 2) || (/^[\u0900-\u097F]+$/.test(w) && w.length >= 2)) &&
+        !isStopword(w)
+      )
   );
 
   // Term vocabulary and Document Frequencies

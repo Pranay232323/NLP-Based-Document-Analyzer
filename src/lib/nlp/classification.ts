@@ -89,7 +89,10 @@ export const DEFAULT_CLASSIFICATION_DATASET: DataSample[] = [
 function extractCleanTokens(text: string): string[] {
   return tokenizeWords(text)
     .map((w: string) => w.toLowerCase())
-    .filter((w: string) => w.length > 2 && !isStopword(w) && /^[a-z]+$/.test(w));
+    .filter((w: string) =>
+      ((/^[a-z]+$/.test(w) && w.length > 2) || (/^[\u0900-\u097F]+$/.test(w) && w.length >= 2)) &&
+      !isStopword(w)
+    );
 }
 
 

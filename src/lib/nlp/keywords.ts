@@ -34,7 +34,7 @@ export interface KeywordExtractionComparison {
 // RAKE Algorithm Implementation
 export function extractRAKE(text: string, topK: number = 10): KeywordItem[] {
   // 1. Split text into candidate phrases using punctuation and stopwords as delimiters
-  const rawSentences = text.split(/[.!?,;:()\n\[\]"]/);
+  const rawSentences = text.split(/[.!?,;:()\n\[\]"।॥]/);
   const candidatePhrases: string[][] = [];
 
   for (const sentence of rawSentences) {
@@ -43,7 +43,12 @@ export function extractRAKE(text: string, topK: number = 10): KeywordItem[] {
 
     for (const w of words) {
       const lower = w.toLowerCase();
-      if (/^[a-z]+$/.test(lower) && !isStopword(lower) && lower.length > 2) {
+      const isValidWord =
+        ((/^[a-z]+$/.test(lower) && lower.length > 2) ||
+         (/^[\u0900-\u097F]+$/.test(lower) && lower.length >= 2)) &&
+        !isStopword(lower);
+
+      if (isValidWord) {
         currentPhrase.push(lower);
       } else {
         if (currentPhrase.length > 0) {
@@ -109,7 +114,10 @@ export function extractTFIDF(text: string, topK: number = 10): KeywordItem[] {
   const sentenceTokens = sentences.map((s) =>
     tokenizeWords(s)
       .map((w: string) => w.toLowerCase())
-      .filter((w: string) => w.length > 2 && !isStopword(w) && /^[a-z]+$/.test(w))
+      .filter((w: string) =>
+        ((/^[a-z]+$/.test(w) && w.length > 2) || (/^[\u0900-\u097F]+$/.test(w) && w.length >= 2)) &&
+        !isStopword(w)
+      )
   );
 
   const dfMap = new Map<string, number>();
@@ -146,7 +154,10 @@ export function extractTFIDF(text: string, topK: number = 10): KeywordItem[] {
 export function extractTermFrequency(text: string, topK: number = 10): KeywordItem[] {
   const words = tokenizeWords(text)
     .map((w: string) => w.toLowerCase())
-    .filter((w: string) => w.length > 2 && !isStopword(w) && /^[a-z]+$/.test(w));
+    .filter((w: string) =>
+      ((/^[a-z]+$/.test(w) && w.length > 2) || (/^[\u0900-\u097F]+$/.test(w) && w.length >= 2)) &&
+      !isStopword(w)
+    );
 
   const freq = new Map<string, number>();
   for (const w of words) freq.set(w, (freq.get(w) || 0) + 1);

@@ -101,7 +101,7 @@ export function chunkDocument(text: string): ChunkResult[] {
   const chunks: ChunkResult[] = [];
 
   sentences.forEach((sentence, sentenceIndex) => {
-    const tagged = posTagTokens(sentence).filter((t) => /[A-Za-z0-9]/.test(t.value));
+    const tagged = posTagTokens(sentence).filter((t) => /[A-Za-z0-9]/.test(t.value) || /[\u0900-\u097F]/.test(t.value));
     const words = tagged.map((t) => t.value);
     const tags = tagged.map((t) => t.pos);
     const sentenceChunks = chunkSentence(words, tags);

@@ -5,11 +5,11 @@ import type { KeywordFrequency } from "./types";
 /** Clean, lowercase and strip special characters for frequency analysis. */
 export function cleanWordsForEDA(text: string): string[] {
   const lower = text.toLowerCase();
-  const stripped = lower.replace(/[^a-z\s]/g, " ");
+  const stripped = lower.replace(/[^a-z\u0900-\u097F\s]/g, " ");
   return stripped
     .split(/\s+/)
     .map((w) => w.trim())
-    .filter((w) => w.length > 2 && !isStopword(w) && !/^\d+$/.test(w));
+    .filter((w) => w.length >= 2 && !isStopword(w) && !/^\d+$/.test(w) && !/^[०-९]+$/.test(w));
 }
 
 export function wordFrequencies(text: string, topK = 30): KeywordFrequency[] {

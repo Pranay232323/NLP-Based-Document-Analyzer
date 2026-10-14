@@ -20,3 +20,22 @@ export const SAMPLE_DOC_A = `Machine learning is a subfield of artificial intell
 
 export const SAMPLE_DOC_B_NAME = "Research_Paper_Draft_B.txt";
 export const SAMPLE_DOC_B = `Artificial intelligence allows machines to perform tasks that typically require human intelligence, such as reasoning, planning and understanding language. Machine learning, an important branch of artificial intelligence, allows computer systems to learn patterns directly from data instead of following hand written rules. Deep learning, which relies on multi-layer neural networks, has produced strong results in computer vision, speech recognition and natural language understanding. University researchers regularly publish novel techniques that make machine learning models faster and more accurate.`;
+
+export const SAMPLE_HINDI_NAME = "Hindi_AI_NLP_Overview.txt";
+export const SAMPLE_HINDI_TEXT = `प्राकृतिक भाषा प्रसंस्करण और कृत्रिम बुद्धिमत्ता: एक अकादमिक अवलोकन
+
+प्राकृतिक भाषा प्रसंस्करण (NLP) कंप्यूटर विज्ञान और कृत्रिम बुद्धिमत्ता का एक अत्यंत महत्वपूर्ण क्षेत्र है। यह कंप्यूटर को मानव भाषा को समझने, विश्लेषण करने और उत्पन्न करने में सक्षम बनाता है। मशीन लर्निंग एल्गोरिदम विशाल डेटा सेट से जटिल भाषाई पैटर्न सीखते हैं।
+
+भारत सरकार और प्रमुख वैज्ञानिक संस्थानों जैसे इस्रो (ISRO) ने नई दिल्ली और मुंबई में आधुनिक कृत्रिम बुद्धिमत्ता अनुसंधान केंद्रों की स्थापना की है। वैज्ञानिकों ने वर्ष २०२४ में उत्कृष्ट परिणाम प्राप्त किए। यह प्रणाली विभिन्न भारतीय भाषाओं में अनुवाद और सूचना पुनर्प्राप्ति को बहुत आसान बनाती है।
+
+छात्र टोकनाइज़ेशन, पद-व्याख्या (POS टैगिंग), रूपात्मक विश्लेषण और वाक्य संरचना जैसी तकनीकों का अध्ययन कर रहे हैं। इस शोध से शिक्षा और अनुसंधान के क्षेत्र में बड़ा लाभ होगा। यह उत्कृष्ट तकनीकी विकास भविष्य के लिए अत्यंत उपयोगी और प्रेरणादायक है।`;
+
+export const SAMPLE_MARATHI_NAME = "Marathi_AI_NLP_Overview.txt";
+export const SAMPLE_MARATHI_TEXT = `नैसर्गिक भाषा प्रक्रिया आणि कृत्रिम बुद्धिमत्ता: एक अभ्यासपूर्ण आढावा
+
+नैसर्गिक भाषा प्रक्रिया (NLP) हा संगणक शास्त्रातील आणि कृत्रिम बुद्धिमत्तेचा एक अत्यंत महत्त्वाचा विभाग आहे। या प्रणालीद्वारे संगणक मानवी भाषा वाचू शकतात, तिचा अर्थ लावू शकतात आणि नवीन मजकूर तयार करू शकतात। मशीन लर्निंग मॉडेल्स मोठ्या डेटासेटमधून भाषेचे नियम आणि व्याकरण शिकतात।
+
+महाराष्ट्र शासनाने पुणे आणि मुंबई येथे आधुनिक संगणकीय भाषा प्रयोगशाळा सुरू केल्या आहेत। संशोधकांनी २०२४ मध्ये उच्च दर्जाचे भाषा विश्लेषण मॉडेल विकसित केले। छत्रपती शिवाजी महाराज यांच्या ऐतिहासिक दस्तऐवजांचे विश्लेषण करण्यासाठी डिजिटल तंत्रज्ञानाचा प्रभावी वापर केला जात आहे।
+
+विद्यार्थी वाक्य पृथक्करण, नाम-सर्वनाम टॅगिंग, शब्दांचे मूळ रूप शोधणे आणि अर्थबोधन यावर सखोल अभ्यास करत आहेत। ही नवीन प्रणाली अत्यंत उपयुक्त, दर्जेदार आणि फायदेशीर ठरत आहे। मराठी भाषेचा डिजिटल विकास वेगाने होत आहे आणि तो खरोखरच कौतुकास्पद आहे।`;
+

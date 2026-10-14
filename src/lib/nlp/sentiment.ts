@@ -61,15 +61,26 @@ const SENTIMENT_LEXICON: Record<string, number> = {
   annoying: -2, annoyed: -2, terriblely: -3, defect: -3, error: -2, errors: -2, flawed: -3,
   worthless: -4, waste: -3, useless: -3, disappoint: -2, disappointed: -3, disappointing: -3,
   disappointment: -3, unreliable: -3, messy: -2, complex: -1, sluggish: -2, corrupt: -3,
-  // Indic positive/negative markers (transliterated or common)
+  // Indic positive/negative markers (Devanagari Hindi & Marathi)
+  // Positive
   accha: 2, badiya: 3, sundar: 2, uttam: 3, shandar: 4,
+  अच्छा: 2, अच्छे: 2, अच्छी: 2, सुंदर: 2, उत्कृष्ट: 4, श्रेष्ठ: 3, उत्तम: 3, बेहतरीन: 4, शानदार: 4, बढ़िया: 3,
+  पसंद: 2, उपयोगी: 2, सहायक: 2, सफल: 3, सफलता: 3, लाभ: 2, महत्वपूर्ण: 2, प्रशंसा: 3, खुशी: 3, आनंद: 3,
+  छान: 3, चांगले: 2, चांगला: 2, चांगली: 2, अप्रतिम: 4, भारी: 3, आवडले: 3, आवडतो: 2, उपयुक्त: 2, मदत: 2,
+  यश: 3, यशस्वी: 3, फायदा: 2, समाधान: 3, कौतुक: 3, योग्य: 2,
+  // Negative
   kharab: -2, bekar: -3, ganda: -2, bura: -2,
+  बुरा: -2, बुरे: -2, बुरी: -2, खराब: -3, बेकार: -3, घटिया: -3, गलत: -2, गलती: -2, समस्या: -2,
+  नुकसान: -2, असफलता: -3, दुख: -2, परेशानी: -2, निराशा: -3, कठिन: -1, धीमा: -2, टूटा: -3, व्यर्थ: -3,
+  वाईट: -3, बकवास: -4, चूक: -2, त्रुटी: -2, तोटा: -2, अपयश: -3, त्रास: -3, मंद: -2, खंडित: -3, त्रासदायक: -3,
 };
 
 const NEGATION_WORDS = new Set([
   "not", "never", "no", "neither", "nor", "hardly", "scarcely", "barely",
   "wasnt", "wasn't", "isnt", "isn't", "arent", "aren't", "wont", "won't",
   "cant", "can't", "cannot", "dont", "don't", "didnt", "didn't", "without",
+  // Indic negation markers
+  "नहीं", "न", "मत", "बिना", "नाही", "नको", "नका", "नव्हते", "नव्हता", "नव्हती", "नसून",
 ]);
 
 const INTENSIFIERS: Record<string, number> = {
@@ -83,6 +94,15 @@ const INTENSIFIERS: Record<string, number> = {
   somewhat: 0.8,
   barely: 0.5,
   hardly: 0.4,
+  // Indic intensifiers
+  बहुत: 1.5,
+  ज्यादा: 1.4,
+  अत्यंत: 1.8,
+  अतिशय: 1.8,
+  काफी: 1.3,
+  खूप: 1.5,
+  फार: 1.5,
+  प्रचंड: 1.8,
 };
 
 export function analyzeSentiment(text: string): SentimentAnalysisResult {
@@ -216,19 +236,36 @@ export function analyzeSentiment(text: string): SentimentAnalysisResult {
 
 export const SAMPLE_SENTIMENT_TEXTS = [
   {
-    label: "Positive Student Feedback",
+    label: "Positive Student Feedback (English)",
     text: "The professor delivered an excellent lecture with clear explanations and very helpful examples. The interactive laboratory exercises were brilliant, and I really enjoyed the natural language processing experiments.",
   },
   {
-    label: "Constructive Mixed Critique",
+    label: "Constructive Mixed Critique (English)",
     text: "The user interface looks clean and modern, but the file upload was somewhat slow. Although the POS tagger works well, the initial documentation was confusing and frustrating.",
   },
   {
-    label: "Negative System Review",
+    label: "Negative System Review (English)",
     text: "The application had terrible performance and crashed frequently. The dataset importer failed with horrible errors, and I found the entire experience completely disappointing and useless.",
   },
   {
-    label: "Sarcastic Edge Case (Limitation Demo)",
+    label: "Sarcastic Edge Case (English)",
     text: "Oh fantastic, another mysterious runtime crash right before my project deadline! Just wonderful how reliably this platform breaks when I need it most.",
   },
+  {
+    label: "Hindi Positive (सकारात्मक)",
+    text: "यह शैक्षणिक व्याख्यान बहुत ही सुंदर, ज्ञानवर्धक और उत्कृष्ट था। प्रोफेसर ने जटिल विषयों को बहुत अच्छी तरह समझाया और सभी छात्रों ने इसका आनंद लिया।",
+  },
+  {
+    label: "Hindi Negative (नकारात्मक)",
+    text: "यह सॉफ्टवेयर बहुत धीमा है और बार-बार खराब हो जाता है। इसमें बहुत सारी गलतियां और गंभीर समस्याएं हैं जो बेहद निराशाजनक और बेकार हैं।",
+  },
+  {
+    label: "Marathi Positive (सकारात्मक)",
+    text: "हा प्रकल्प खूप चांगला, सुंदर आणि अत्यंत उपयुक्त आहे. सर्व वैशिष्ट्ये उत्कृष्ट आणि सुरळीतपणे काम करतात. मला हा प्रयोग फार आवडला आणि समाधान वाटले.",
+  },
+  {
+    label: "Marathi Negative (नकारात्मक)",
+    text: "हा अनुप्रयोग फार मंद आहे आणि वारंवार खंडित होतो. यातील त्रुटींमुळे खूप त्रास झाला आणि निकाल वाईट आले.",
+  },
 ];
+

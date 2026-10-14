@@ -2,13 +2,13 @@
 import { isStopword } from "./stopwords";
 import type { PreprocessingResult, ScriptValidation, TextStatistics } from "./types";
 
-/** Split raw sentences using punctuation-aware boundaries (. ! ?) */
+/** Split raw sentences using punctuation-aware boundaries (. ! ? । ॥) */
 export function splitSentences(text: string): string[] {
   const cleaned = text.replace(/\s+/g, " ").trim();
   if (!cleaned) return [];
-  // Split on sentence terminators while keeping reasonable abbreviation handling simple.
+  // Split on sentence terminators (. ! ? and Devanagari purna viram । ॥)
   const parts = cleaned
-    .split(/(?<=[.!?])\s+(?=[A-Z0-9"'“])/)
+    .split(/(?<=[.!?।॥])\s+(?=[A-Z0-9"'“\u0900-\u097F])/)
     .map((s) => s.trim())
     .filter(Boolean);
   return parts.length ? parts : [cleaned];
@@ -16,46 +16,60 @@ export function splitSentences(text: string): string[] {
 
 /** Tokenization: break text into raw tokens (words, numbers, punctuation). */
 export function tokenize(text: string): string[] {
-  const matches = text.match(/[A-Za-z]+(?:'[A-Za-z]+)?|\d+(?:\.\d+)?|[^\sA-Za-z0-9]/g);
+  const matches = text.match(/[A-Za-z]+(?:'[A-Za-z]+)?|[\u0900-\u097F]+|\d+(?:\.\d+)?|[०-९]+|[^\sA-Za-z0-9\u0900-\u097F]/g);
   return matches ?? [];
 }
 
 /** Tokenize extracting only words */
 export function tokenizeWords(text: string): string[] {
-  const matches = text.match(/[A-Za-z]+(?:'[A-Za-z]+)?/g);
+  const matches = text.match(/[A-Za-z]+(?:'[A-Za-z]+)?|[\u0900-\u097F]+/g);
   return matches ?? [];
 }
 
 export function isWordToken(token: string): boolean {
-
-  return /^[A-Za-z]+(?:'[A-Za-z]+)?$/.test(token);
+  return /^[A-Za-z]+(?:'[A-Za-z]+)?$/.test(token) || /^[\u0900-\u097F]+$/.test(token);
 }
 
 export function isNumericToken(token: string): boolean {
-  return /^\d+(?:\.\d+)?$/.test(token);
+  return /^\d+(?:\.\d+)?$/.test(token) || /^[०-९]+(?:\.[०-९]+)?$/.test(token);
 }
 
 export function isPunctuationToken(token: string): boolean {
-  return /^[^\sA-Za-z0-9]+$/.test(token);
+  return /^[^\sA-Za-z0-9\u0900-\u097F]+$/.test(token);
 }
 
-/** Script validation: check whether the text is predominantly Latin/English script. */
+/** Script validation: check whether the text is valid Latin (English) or Devanagari (Hindi/Marathi) script. */
 export function validateScript(text: string): ScriptValidation {
   const alphaChars = text.match(/\p{L}/gu) ?? [];
   const latinChars = text.match(/[A-Za-z]/g) ?? [];
+  const devanagariChars = text.match(/[\u0900-\u097F]/g) ?? [];
   const totalAlphaChars = alphaChars.length;
   const latinCount = latinChars.length;
+  const devanagariCount = devanagariChars.length;
   const nonLatinChars = totalAlphaChars - latinCount;
   const latinRatio = totalAlphaChars === 0 ? 1 : latinCount / totalAlphaChars;
-  const isValid = totalAlphaChars === 0 ? true : latinRatio >= 0.9;
+  const devanagariRatio = totalAlphaChars === 0 ? 0 : devanagariCount / totalAlphaChars;
+
+  let isValid = false;
+  let label: ScriptValidation["label"] = "Invalid or Mixed Script";
+
+  if (totalAlphaChars === 0 || latinRatio >= 0.9) {
+    isValid = true;
+    label = "Valid Latin Script";
+  } else if (devanagariRatio >= 0.8) {
+    isValid = true;
+    label = "Valid Devanagari Script";
+  }
 
   return {
     isValid,
-    label: isValid ? "Valid Latin Script" : "Invalid or Mixed Script",
+    label,
     latinChars: latinCount,
+    devanagariChars: devanagariCount,
     nonLatinChars,
     totalAlphaChars,
     latinRatio: Number((latinRatio * 100).toFixed(2)),
+    devanagariRatio: Number((devanagariRatio * 100).toFixed(2)),
   };
 }
 

@@ -152,6 +152,32 @@ runTest("NER extracts capitalized proper names and entities", () => {
   assert.ok(entities.some((e) => e.text.includes("Einstein") || e.text.includes("Berlin")));
 });
 
+runTest("NER correctly extracts DATE (14 अक्टूबर 2026, कल, सोमवार), ORG, GPE, and rejects standalone 'मे' as O", () => {
+  const text = "14 अक्टूबर 2026 को सोमवार है। कल भारत सरकार और इसरो ने दिल्ली, मुंबई तथा भारत में बैठक बुलाई। जीवन मे मेहनत ज़रूरी है।";
+  const entities = extractEntities(text);
+
+  // DATE: 14 अक्टूबर 2026, कल, सोमवार
+  assert.ok(entities.some((e) => e.text.includes("14 अक्टूबर 2026") && e.type === "DATE"), "14 अक्टूबर 2026 should be DATE");
+  assert.ok(entities.some((e) => e.text === "सोमवार" && e.type === "DATE"), "सोमवार should be DATE");
+  assert.ok(entities.some((e) => e.text === "कल" && e.type === "DATE"), "कल should be DATE");
+
+  // ORGANIZATION: भारत सरकार, इसरो
+  assert.ok(entities.some((e) => e.text === "भारत सरकार" && e.type === "ORGANIZATION"), "भारत सरकार should be ORGANIZATION");
+  assert.ok(entities.some((e) => e.text === "इसरो" && e.type === "ORGANIZATION"), "इसरो should be ORGANIZATION");
+
+  // GPE/LOCATION: दिल्ली, मुंबई, भारत
+  assert.ok(entities.some((e) => e.text === "दिल्ली" && e.type === "GPE/LOCATION"), "दिल्ली should be GPE/LOCATION");
+  assert.ok(entities.some((e) => e.text === "मुंबई" && e.type === "GPE/LOCATION"), "मुंबई should be GPE/LOCATION");
+  assert.ok(entities.some((e) => e.text === "भारत" && e.type === "GPE/LOCATION"), "भारत should be GPE/LOCATION");
+
+  // O (Not an entity): 'मे' or 'में' must NEVER be classified as DATE or any entity
+  const meEntities = entities.filter((e) => e.text.trim() === "मे" || e.text.trim() === "में");
+  assert.strictEqual(meEntities.length, 0, "Standalone 'मे' or 'में' must not be classified as any entity");
+
+  // Substring check: 'मेहनत' should not match 'मे'
+  assert.ok(!entities.some((e) => e.text === "मे"), "मे should not be matched inside words or standalone");
+});
+
 // --- CORE EXPERIMENT 9: Document Similarity ---
 console.log("\n• Suite 9: TF-IDF Cosine Similarity (Exp 9)");
 runTest("Identical documents yield cosine similarity of 1.0", () => {
@@ -270,8 +296,8 @@ runTest("Multi-metric similarity captures soft semantic and lexical dimensions",
 });
 
 // --- FULL END-TO-END PIPELINE ---
-console.log("\n• Suite 17: Full Document Analysis Pipeline Integration");
-runTest("analyzeDocument integrates both core and advanced modules seamlessly", () => {
+console.log("\n• Suite 17: Full Document Analysis Pipeline Integration (English)");
+runTest("analyzeDocument integrates both core and advanced modules seamlessly for English", () => {
   const docText = "Natural language processing is an essential field of artificial intelligence. It transforms unstructured text into structured insights.";
   const analysis = analyzeDocument(docText, "TestDoc.txt");
   assert.strictEqual(analysis.meta.docName, "TestDoc.txt");
@@ -285,6 +311,100 @@ runTest("analyzeDocument integrates both core and advanced modules seamlessly", 
   assert.ok(analysis.languageIdentification);
   assert.ok(analysis.keywordComparison);
   assert.strictEqual(analysis.languageIdentification?.detectedLanguage, "English");
+});
+
+// --- HINDI MULTILINGUAL PIPELINE ---
+console.log("\n• Suite 18: Hindi Multilingual NLP Processing (Exps 2-16)");
+runTest("Hindi preprocessing, tokenization, and script validation", () => {
+  const hiText = "प्राकृतिक भाषा प्रसंस्करण कंप्यूटर विज्ञान का एक महत्वपूर्ण क्षेत्र है। यह बहुत अच्छा और उपयोगी है।";
+  const pre = preprocessText(hiText);
+  assert.strictEqual(pre.scriptValidation.isValid, true);
+  assert.strictEqual(pre.scriptValidation.label, "Valid Devanagari Script");
+  assert.ok(pre.wordTokens.length >= 10);
+  assert.ok(pre.filteredTokens.length > 0);
+  assert.ok(pre.removedStopwords.length > 0); // Stops like 'का', 'है', 'यह'
+});
+
+runTest("Hindi stemming, lemmatization, and morphology", () => {
+  const stemmed = stemWord("पुस्तकों");
+  assert.strictEqual(stemmed, "पुस्तक");
+
+  const lemma = lemmatizeWord("करते");
+  assert.strictEqual(lemma, "करना");
+
+  const morph = analyzeMorphology("उपयोग");
+  assert.strictEqual(morph.prefix, "उप");
+  assert.strictEqual(morph.root, "योग");
+});
+
+runTest("Hindi sentiment, POS tagging, NER, and End-to-End pipeline", () => {
+  const hiDoc = "नरेंद्र मोदी ने नई दिल्ली में इस्रो के वैज्ञानिकों की उत्कृष्ट सफलता की बहुत प्रशंसा की। यह बहुत अच्छा और शानदार काम था।";
+  const analysis = analyzeDocument(hiDoc, "HindiDoc.txt");
+
+  assert.strictEqual(analysis.meta.scriptValidation.label, "Valid Devanagari Script");
+  assert.ok(analysis.preprocessing.filteredTokens.length > 0);
+  assert.ok(analysis.pos.length > 0);
+  assert.ok(analysis.ngramSummaries[0].uniqueNGrams > 0);
+  assert.ok(analysis.keywords.length > 0);
+
+  // NER detection of Hindi entities
+  assert.ok(analysis.entities.some((e) => e.text.includes("नरेंद्र मोदी") || e.text.includes("दिल्ली") || e.text.includes("इस्रो")));
+
+  // Sentiment Analysis on positive Hindi text
+  assert.strictEqual(analysis.sentiment?.label, "Positive");
+  assert.ok((analysis.sentiment?.normalizedScore ?? 0) > 0);
+
+  // Language identification
+  assert.strictEqual(analysis.languageIdentification?.detectedLanguage, "Hindi");
+});
+
+// --- MARATHI MULTILINGUAL PIPELINE ---
+console.log("\n• Suite 19: Marathi Multilingual NLP Processing (Exps 2-16)");
+runTest("Marathi preprocessing, tokenization, and script validation", () => {
+  const mrText = "नैसर्गिक भाषा प्रक्रिया हा संगणक शास्त्रातील एक महत्त्वाचा भाग आहे। मराठी भाषेचे व्याकरण अत्यंत समृद्ध आहे।";
+  const pre = preprocessText(mrText);
+  assert.strictEqual(pre.scriptValidation.isValid, true);
+  assert.strictEqual(pre.scriptValidation.label, "Valid Devanagari Script");
+  assert.ok(pre.wordTokens.length >= 10);
+  assert.ok(pre.filteredTokens.length > 0);
+  assert.ok(pre.removedStopwords.length > 0); // Stops like 'आहे', 'हा', 'एक'
+});
+
+runTest("Marathi stemming, lemmatization, and morphology", () => {
+  const stemmed = stemWord("पुस्तकातील");
+  assert.ok(stemmed === "पुस्तक" || stemmed === "पुस्तका");
+
+  const lemma = lemmatizeWord("करतात");
+  assert.strictEqual(lemma, "करणे");
+
+  const morphPrefix = analyzeMorphology("सुविचार");
+  assert.strictEqual(morphPrefix.prefix, "सु");
+  assert.strictEqual(morphPrefix.root, "विचार");
+
+  const morphSuffix = analyzeMorphology("नियमपूर्वक");
+  assert.strictEqual(morphSuffix.suffix, "पूर्वक");
+  assert.strictEqual(morphSuffix.root, "नियम");
+});
+
+runTest("Marathi sentiment, POS tagging, NER, and End-to-End pipeline", () => {
+  const mrDoc = "छत्रपती शिवाजी महाराज यांनी महाराष्ट्रात स्वराज्य स्थापन केले। पुणे आणि मुंबई येथे संशोधन कार्य खूप छान आणि उत्कृष्ट सुरू आहे।";
+  const analysis = analyzeDocument(mrDoc, "MarathiDoc.txt");
+
+  assert.strictEqual(analysis.meta.scriptValidation.label, "Valid Devanagari Script");
+  assert.ok(analysis.preprocessing.filteredTokens.length > 0);
+  assert.ok(analysis.pos.length > 0);
+  assert.ok(analysis.ngramSummaries[0].uniqueNGrams > 0);
+  assert.ok(analysis.keywords.length > 0);
+
+  // NER detection of Marathi entities
+  assert.ok(analysis.entities.some((e) => e.text.includes("छत्रपती शिवाजी महाराज") || e.text.includes("महाराष्ट्र") || e.text.includes("पुणे")));
+
+  // Sentiment Analysis on positive Marathi text ('छान', 'उत्कृष्ट')
+  assert.strictEqual(analysis.sentiment?.label, "Positive");
+  assert.ok((analysis.sentiment?.normalizedScore ?? 0) > 0);
+
+  // Language identification
+  assert.strictEqual(analysis.languageIdentification?.detectedLanguage, "Marathi");
 });
 
 console.log("\n=======================================================");

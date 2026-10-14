@@ -14,7 +14,7 @@ const LABELS: Record<number, string> = { 1: "Unigram", 2: "Bigram", 3: "Trigram"
 
 /** Extracts a lowercase sequence of word tokens, preserving natural order (keeps stopwords). */
 export function wordSequence(text: string): string[] {
-  return (text.match(/[A-Za-z]+(?:'[A-Za-z]+)?/g) ?? []).map((w) => w.toLowerCase());
+  return (text.match(/[A-Za-z]+(?:'[A-Za-z]+)?|[\u0900-\u097F]+/g) ?? []).map((w) => w.toLowerCase());
 }
 
 /** Build an N-Gram frequency model from a token sequence. */

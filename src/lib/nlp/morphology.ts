@@ -16,7 +16,23 @@ const SUFFIXES = [
   "ing", "ed", "er", "est", "ly", "es", "s", "y",
 ].sort((a, b) => b.length - a.length);
 
+const INDIC_PREFIXES = [
+  "अति", "अधि", "अनु", "अप", "अभि", "अव", "उप", "दुर्", "दुस्", "निर्", "निस्",
+  "प्रति", "प्र", "वि", "सम्", "सु", "कु", "बे", "ना", "गैर", "बद", "अ", "अन",
+].sort((a, b) => b.length - a.length);
+
+const INDIC_SUFFIXES = [
+  "आत्मक", "पूर्वक", "दायक", "कारी", "शील", "वान", "वती", "दार", "मंद",
+  "कार", "बाज़", "गीरी", "पणा", "पणे", "तया", "ता", "त्व", "ईक", "इक",
+  "णारे", "णारा", "णारी", "तात", "तोय", "तेय", "णे", "चे", "ची", "चा", "च्या",
+  "कर", "ने", "नी", "तो", "ते", "तात",
+].sort((a, b) => b.length - a.length);
+
 const MIN_ROOT_LENGTH = 3;
+
+function isDevanagari(text: string): boolean {
+  return /[\u0900-\u097F]/.test(text);
+}
 
 function fixRootSpelling(root: string, suffix: string): string {
   // studi + ed -> study (i -> y before a stripped vowel suffix)
@@ -42,12 +58,17 @@ export function analyzeMorphology(wordRaw: string): MorphologyBreakdown {
     return { word: wordRaw, prefix: null, root: wordRaw, suffix: null, notes: "Empty input." };
   }
 
+  const isIndic = isDevanagari(word);
+  const prefixes = isIndic ? INDIC_PREFIXES : PREFIXES;
+  const suffixes = isIndic ? INDIC_SUFFIXES : SUFFIXES;
+  const minLen = isIndic ? 2 : MIN_ROOT_LENGTH;
+
   let prefix: string | null = null;
   let root = word;
 
   // Try to strip a recognised prefix, keeping a usable remainder.
-  for (const p of PREFIXES) {
-    if (word.startsWith(p) && word.length - p.length >= MIN_ROOT_LENGTH) {
+  for (const p of prefixes) {
+    if (word.startsWith(p) && word.length - p.length >= minLen) {
       prefix = p;
       root = word.slice(p.length);
       break;
@@ -56,17 +77,21 @@ export function analyzeMorphology(wordRaw: string): MorphologyBreakdown {
 
   // Try to strip a recognised suffix from whatever remains after the prefix.
   let suffix: string | null = null;
-  for (const s of SUFFIXES) {
-    if (root.endsWith(s) && root.length - s.length >= MIN_ROOT_LENGTH) {
+  for (const s of suffixes) {
+    if (root.endsWith(s) && root.length - s.length >= minLen) {
       suffix = s;
-      root = fixRootSpelling(root.slice(0, root.length - s.length), s);
+      root = isIndic ? root.slice(0, root.length - s.length) : fixRootSpelling(root.slice(0, root.length - s.length), s);
       break;
     }
   }
 
   const notes =
     prefix || suffix
-      ? "Root recovered using simple rule-based prefix/suffix stripping (approximate, not dictionary-validated)."
+      ? isIndic
+        ? "उपसर्ग/प्रत्यय पृथक्करण (Morphological prefix/suffix stripping for Indic/Devanagari text)."
+        : "Root recovered using simple rule-based prefix/suffix stripping (approximate, not dictionary-validated)."
+      : isIndic
+      ? "कोणताही सामान्य उपसर्ग/प्रत्यय आढळला नाही (word treated as root)."
       : "No common prefix/suffix detected - word treated as its own root.";
 
   return { word: wordRaw, prefix, root, suffix, notes };
@@ -77,7 +102,8 @@ export function analyzeMorphologyBatch(words: string[]): MorphologyBreakdown[] {
   const results: MorphologyBreakdown[] = [];
   for (const w of words) {
     const lower = w.toLowerCase();
-    if (seen.has(lower) || lower.length < 3) continue;
+    const minL = isDevanagari(lower) ? 2 : 3;
+    if (seen.has(lower) || lower.length < minL) continue;
     seen.add(lower);
     results.push(analyzeMorphology(lower));
   }
@@ -86,13 +112,35 @@ export function analyzeMorphologyBatch(words: string[]): MorphologyBreakdown[] {
 
 /**
  * EXPERIMENT 4 (part 2): simple rule-based word generation.
- * Applies common English suffix rules to a base word. Forms are labelled
- * "Rule-Based Possible Variants" because naive suffixation does not guarantee
- * a linguistically valid English word.
+ * Applies common English suffix rules to a base word.
+ * For Devanagari, produces Hindi/Marathi morphological inflectional forms.
  */
 export function generateWordForms(baseRaw: string): WordGeneration {
   const base = baseRaw.toLowerCase().trim();
   if (!base) return { base: baseRaw, variants: [] };
+
+  if (isDevanagari(base)) {
+    const variants = new Set<string>();
+    variants.add(base);
+    // Strip canonical trailing 'ना' or 'णे' if present to find core verb stem
+    let stem = base;
+    if (stem.endsWith("ना") && stem.length > 2) stem = stem.slice(0, -2);
+    else if (stem.endsWith("णे") && stem.length > 2) stem = stem.slice(0, -2);
+
+    variants.add(stem + "ता");
+    variants.add(stem + "ती");
+    variants.add(stem + "ते");
+    variants.add(stem + "ना");
+    variants.add(stem + "कर");
+    variants.add(stem + "तो");
+    variants.add(stem + "तात");
+    variants.add(stem + "णे");
+    variants.add(stem + "णारे");
+    variants.add(stem + "णारा");
+    variants.add(stem + "ल्या");
+    variants.add(stem + "दार");
+    return { base, variants: Array.from(variants) };
+  }
 
   const endsConsonantY = /[^aeiou]y$/.test(base);
   const endsE = /e$/.test(base);
