@@ -1,9 +1,11 @@
 "use client";
 
+import { useMemo } from "react";
 import { useDocument } from "@/components/document-context";
 import { Card, CardBody, CardHeader, SectionHeading, Badge, PrimaryButton, Spinner } from "@/components/ui/primitives";
 import { ExperimentPlayground } from "@/components/experiment-playground";
 import { buildHighlightSegments } from "@/lib/nlp/highlight";
+import { summarizeTextRank } from "@/lib/nlp/textRank";
 import { Printer, Download, Sparkles } from "lucide-react";
 
 export default function ReportPage() {
@@ -22,6 +24,7 @@ export default function ReportPage() {
   const rawText = analysis?.rawText ?? "";
 
   const segments = rawText ? buildHighlightSegments(rawText, entities) : [];
+  const textRankSummary = useMemo(() => (rawText ? summarizeTextRank(rawText, 3) : null), [rawText]);
 
   return (
     <div className="space-y-6">
@@ -214,8 +217,23 @@ export default function ReportPage() {
             </section>
           )}
 
+          {textRankSummary && (
+            <section className="mt-6 space-y-2">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-bold text-slate-900">14. TextRank Graph Extractive Executive Summary (Mihalcea &amp; Tarau)</h2>
+                <Badge tone="violet">Compression: {textRankSummary.compressionRatio}%</Badge>
+              </div>
+              <div className="rounded-lg border border-purple-100 bg-purple-50/40 p-3 text-sm italic text-slate-800 leading-relaxed">
+                &ldquo;{textRankSummary.summaryText}&rdquo;
+              </div>
+              <p className="text-xs text-slate-500">
+                Extracted top {textRankSummary.summarySentenceCount} of {textRankSummary.originalSentenceCount} sentences via sentence graph PageRank eigenvector centrality convergence.
+              </p>
+            </section>
+          )}
+
           <section className="mt-6 space-y-2">
-            <h2 className="text-base font-bold text-slate-900">14. Conclusion &amp; Academic Verification</h2>
+            <h2 className="text-base font-bold text-slate-900">15. Conclusion &amp; Academic Verification</h2>
             <p className="text-sm leading-relaxed text-slate-600">
               The document was processed through the complete 16-experiment NLP platform architecture: tokenization,
               filtration, script validation, stop-word removal, stemming, lemmatization, morphological analysis, POS

@@ -6,7 +6,8 @@ import { Card, CardBody, CardHeader, SectionHeading, Badge, StatCard, SecondaryB
 import { ExperimentPlayground } from "@/components/experiment-playground";
 import { StepSimulator } from "@/components/ui/step-simulator";
 import { generatePreprocessingSimulation } from "@/lib/nlp/simulators";
-import { Search, Download, Filter, CheckCircle2 } from "lucide-react";
+import { computeReadability } from "@/lib/nlp/readability";
+import { Search, Download, Filter, CheckCircle2, BookOpen, Gauge, FileText } from "lucide-react";
 
 export default function PreprocessingPage() {
   const { analysis, loading } = useDocument();
@@ -17,6 +18,7 @@ export default function PreprocessingPage() {
 
   const simTarget = analysis?.rawText?.slice(0, 160) || "Natural language processing is concerned with interactions between computers and language.";
   const simulation = useMemo(() => generatePreprocessingSimulation(simTarget), [simTarget]);
+  const readability = useMemo(() => computeReadability(analysis?.rawText || simTarget), [analysis?.rawText, simTarget]);
 
   function filterTokens(tokens: string[] = []) {
     if (!searchQuery.trim()) return tokens;
@@ -246,6 +248,103 @@ export default function PreprocessingPage() {
                     )}
                   </div>
                 )}
+              </div>
+            </CardBody>
+          </Card>
+
+          {/* Model: Psycholinguistic Readability & Text Complexity */}
+          <Card>
+            <CardHeader
+              title="Psycholinguistic Readability & Text Complexity Model"
+              subtitle="Algorithmic readability scoring via Flesch Reading Ease, Flesch-Kincaid Grade Level, Gunning Fog Index, and syllable/akshara distribution."
+              action={
+                <Badge tone={readability.fleschReadingEase >= 60 ? "emerald" : readability.fleschReadingEase >= 30 ? "amber" : "rose"}>
+                  {readability.interpretation.readingDifficulty}
+                </Badge>
+              }
+            />
+            <CardBody className="space-y-5">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-xs">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+                    <Gauge className="h-3.5 w-3.5 text-indigo-500" />
+                    Flesch Reading Ease
+                  </div>
+                  <div className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
+                    {readability.fleschReadingEase}
+                    <span className="text-xs font-normal text-slate-400"> / 100</span>
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">{readability.fleschReadingEaseLabel}</div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-xs">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+                    <BookOpen className="h-3.5 w-3.5 text-emerald-500" />
+                    Flesch-Kincaid Grade
+                  </div>
+                  <div className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
+                    {readability.fleschKincaidGrade}
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">School/College level</div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-xs">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+                    <FileText className="h-3.5 w-3.5 text-amber-500" />
+                    Gunning Fog Index
+                  </div>
+                  <div className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
+                    {readability.gunningFogIndex}
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">Years of formal education</div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-xs">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+                    <Filter className="h-3.5 w-3.5 text-purple-500" />
+                    Lexical Density
+                  </div>
+                  <div className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
+                    {readability.lexicalDensity}%
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">Informational content ratio</div>
+                </div>
+              </div>
+
+              {/* Progress bar for Flesch ease */}
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                <div className="flex justify-between text-xs font-medium text-slate-700">
+                  <span>Readability Scale (0 = Highly Technical, 100 = Very Simple)</span>
+                  <span className="font-semibold text-indigo-600">{readability.fleschReadingEase} / 100</span>
+                </div>
+                <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-slate-200">
+                  <div
+                    className={`h-full transition-all duration-500 ${
+                      readability.fleschReadingEase >= 70
+                        ? "bg-emerald-500"
+                        : readability.fleschReadingEase >= 50
+                        ? "bg-indigo-500"
+                        : readability.fleschReadingEase >= 30
+                        ? "bg-amber-500"
+                        : "bg-rose-500"
+                    }`}
+                    style={{ width: `${Math.max(5, Math.min(100, readability.fleschReadingEase))}%` }}
+                  />
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
+                  <div className="text-slate-600">
+                    <span className="font-semibold">Target Audience:</span> {readability.interpretation.targetAudience}
+                  </div>
+                  <div className="text-slate-600">
+                    <span className="font-semibold">Avg Sentence:</span> {readability.avgSentenceLength} words
+                  </div>
+                  <div className="text-slate-600">
+                    <span className="font-semibold">Syllables / Word:</span> {readability.avgSyllablesPerWord}
+                  </div>
+                </div>
+                <p className="mt-2 text-xs text-slate-500 italic">
+                  {readability.interpretation.summary}
+                </p>
               </div>
             </CardBody>
           </Card>

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useDocument } from "@/components/document-context";
 import { Card, CardBody, CardHeader, SectionHeading, Badge, PrimaryButton, SecondaryButton, Spinner, StatCard } from "@/components/ui/primitives";
 import { SAMPLE_DOC_A, SAMPLE_DOC_A_NAME, SAMPLE_DOC_B, SAMPLE_DOC_B_NAME, SAMPLE_HINDI_TEXT, SAMPLE_MARATHI_TEXT } from "@/lib/nlp/sampleData";
 import type { SimilarityResult } from "@/lib/nlp/types";
-import { Scale, Search, Sparkles, FileText, Download, CheckCircle2, AlertTriangle } from "lucide-react";
+import { rankDocumentsBM25, type BM25ComparisonResult } from "@/lib/nlp/bm25";
+import { Scale, Search, Sparkles, FileText, Download, CheckCircle2, AlertTriangle, Sliders, Database } from "lucide-react";
 
 const LEVEL_CONFIG = {
   "Highly Similar": { tone: "rose" as const, bg: "bg-rose-50 text-rose-800 border-rose-200" },
@@ -59,6 +60,21 @@ export default function SimilarityPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SimilarityResult | null>(null);
   const [termSearch, setTermSearch] = useState("");
+
+  // BM25 Probabilistic Ranking Lab State
+  const [bm25Query, setBm25Query] = useState("language processing systems");
+  const [bm25K1, setBm25K1] = useState(1.5);
+  const [bm25B, setBm25B] = useState(0.75);
+
+  const bm25Result: BM25ComparisonResult = useMemo(() => {
+    const corpus = [
+      { id: 1, name: docAName || "Document A", text: docAText },
+      { id: 2, name: docBName || "Document B", text: docBText },
+      { id: 3, name: "Hindi NLP Corpus Sample", text: SAMPLE_HINDI_TEXT },
+      { id: 4, name: "Marathi NLP Corpus Sample", text: SAMPLE_MARATHI_TEXT },
+    ];
+    return rankDocumentsBM25(corpus, bm25Query, bm25K1, bm25B);
+  }, [docAName, docAText, docBName, docBText, bm25Query, bm25K1, bm25B]);
 
   async function handleCompare(aText?: string, bText?: string, aName?: string, bName?: string) {
     const textA = (aText ?? docAText).trim();
@@ -324,6 +340,126 @@ export default function SimilarityPage() {
                     )}
                   </tbody>
                 </table>
+              </div>
+            </CardBody>
+          </Card>
+
+          {/* Model: Okapi BM25 Probabilistic Ranking & Information Retrieval */}
+          <Card>
+            <CardHeader
+              title="Okapi BM25 Probabilistic Ranking & Information Retrieval Model"
+              subtitle="Industry-standard ranking function behind search engines (Elasticsearch, Lucene) with term frequency saturation (k₁) and document length normalization (b)."
+              action={
+                <Badge tone="indigo">
+                  BM25 Retrieval Engine
+                </Badge>
+              }
+            />
+            <CardBody className="space-y-5">
+              {/* Query & Parameter Controls */}
+              <div className="grid grid-cols-1 gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 lg:grid-cols-3">
+                <div className="space-y-1 lg:col-span-1">
+                  <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <Search className="h-3.5 w-3.5 text-indigo-500" /> Search Query
+                  </label>
+                  <input
+                    type="text"
+                    value={bm25Query}
+                    onChange={(e) => setBm25Query(e.target.value)}
+                    placeholder="Enter query words..."
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100"
+                  />
+                  <span className="text-[11px] text-slate-400">Tokens matched: {bm25Result.queryTerms.join(", ") || "(none)"}</span>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs font-semibold text-slate-700">
+                    <span className="flex items-center gap-1"><Sliders className="h-3 w-3 text-emerald-500" /> Saturation (k₁):</span>
+                    <span className="font-mono text-indigo-600">{bm25K1.toFixed(2)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.2"
+                    max="3.0"
+                    step="0.05"
+                    value={bm25K1}
+                    onChange={(e) => setBm25K1(parseFloat(e.target.value))}
+                    className="w-full accent-indigo-600"
+                  />
+                  <span className="text-[11px] text-slate-400">Limits asymptotic TF impact</span>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs font-semibold text-slate-700">
+                    <span className="flex items-center gap-1"><Sliders className="h-3 w-3 text-purple-500" /> Length Penalty (b):</span>
+                    <span className="font-mono text-purple-600">{bm25B.toFixed(2)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.0"
+                    max="1.0"
+                    step="0.05"
+                    value={bm25B}
+                    onChange={(e) => setBm25B(parseFloat(e.target.value))}
+                    className="w-full accent-purple-600"
+                  />
+                  <span className="text-[11px] text-slate-400">Penalizes verbose/longer docs</span>
+                </div>
+              </div>
+
+              {/* Ranked Documents Table */}
+              <div className="overflow-x-auto rounded-xl border border-slate-200">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-100 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                    <tr className="border-b border-slate-200">
+                      <th className="py-2.5 px-4">Rank</th>
+                      <th className="py-2.5 px-4">Document</th>
+                      <th className="py-2.5 px-4">Length</th>
+                      <th className="py-2.5 px-4">BM25 Score</th>
+                      <th className="py-2.5 px-4">Term Breakdown (TF · IDF · Saturated TF)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {bm25Result.rankedResults.map((doc, idx) => (
+                      <tr key={doc.docId} className="hover:bg-slate-50 transition">
+                        <td className="py-3 px-4 font-bold text-slate-700">#{idx + 1}</td>
+                        <td className="py-3 px-4">
+                          <div className="font-semibold text-slate-900">{doc.name}</div>
+                          <div className="text-xs text-slate-400 line-clamp-1">{doc.snippet}</div>
+                        </td>
+                        <td className="py-3 px-4 font-mono text-xs text-slate-600">{doc.docLength} words</td>
+                        <td className="py-3 px-4 font-mono font-bold text-indigo-600">{doc.score.toFixed(4)}</td>
+                        <td className="py-3 px-4 text-xs">
+                          {doc.termBreakdown.length === 0 ? (
+                            <span className="text-slate-400 italic">No query matches</span>
+                          ) : (
+                            <div className="flex flex-wrap gap-1.5">
+                              {doc.termBreakdown.map((tb) => (
+                                <span
+                                  key={tb.term}
+                                  className="inline-flex items-center gap-1 rounded bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700 border border-indigo-100"
+                                >
+                                  <strong>{tb.term}</strong>: tf={tb.tf}, idf={tb.idf.toFixed(2)} → +{tb.scoreContribution.toFixed(3)}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* BM25 Theoretical Formula & Explanation */}
+              <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-4 text-xs text-slate-700 space-y-1.5">
+                <div className="font-semibold text-indigo-900">BM25 Scoring Formula:</div>
+                <code className="block rounded bg-white p-2 font-mono text-[11px] text-slate-800 border border-indigo-200">
+                  BM25(D, Q) = Σ IDF(qᵢ) · [ f(qᵢ, D) · (k₁ + 1) ] / [ f(qᵢ, D) + k₁ · (1 - b + b · |D| / avgdl) ]
+                </code>
+                <p className="text-slate-600">
+                  <strong>Why it beats classical TF-IDF:</strong> In raw TF-IDF, repeating a keyword 50 times multiplies the score 50x (vulnerable to spam). In BM25, the saturation factor <code className="font-semibold">k₁</code> imposes an upper asymptotic bound, while <code className="font-semibold">b</code> prevents naturally lengthy documents from dominating purely due to word count.
+                </p>
               </div>
             </CardBody>
           </Card>

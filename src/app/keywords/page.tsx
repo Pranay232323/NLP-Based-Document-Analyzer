@@ -18,7 +18,8 @@ import {
   compareKeywordMethods,
   type KeywordExtractionComparison,
 } from "@/lib/nlp/keywords";
-import { AlertCircle, Download, Search, CheckCircle2 } from "lucide-react";
+import { summarizeTextRank, type TextRankSummaryResult } from "@/lib/nlp/textRank";
+import { AlertCircle, Download, Search, CheckCircle2, FileText, Share2, Sparkles, Sliders } from "lucide-react";
 
 const SAMPLE_ENGLISH_TEXT = `Natural language processing is an interdisciplinary subfield of computer science and artificial intelligence. It is primarily concerned with the interactions between computers and human language, in particular how to program computers to process and analyze large amounts of natural language data. The goal is a computer capable of understanding the contents of documents, including the contextual nuances of the language within them. The technology can then accurately extract information and insights contained in the documents as well as categorize and organize the documents themselves. Challenges in natural language processing frequently involve speech recognition, natural-language understanding, and natural-language generation.`;
 
@@ -42,6 +43,14 @@ export default function KeywordsPage() {
     const textToExtract = rawText || SAMPLE_ENGLISH_TEXT;
     return compareKeywordMethods(textToExtract);
   });
+
+  // TextRank Extractive Summarizer State
+  const [summarySentencesCount, setSummarySentencesCount] = useState(3);
+  const [summaryDamping, setSummaryDamping] = useState(0.85);
+
+  const textRankSummary: TextRankSummaryResult = useMemo(() => {
+    return summarizeTextRank(inputText, summarySentencesCount, summaryDamping);
+  }, [inputText, summarySentencesCount, summaryDamping]);
 
   function runExtract(textToExtract: string) {
     if (!textToExtract.trim()) {
@@ -348,6 +357,139 @@ export default function KeywordsPage() {
               <span className="font-semibold text-violet-700">TF-IDF Methodology: </span>
               {result.explanation.tfidfExplanation}
             </div>
+          </div>
+        </CardBody>
+      </Card>
+
+      {/* Model: TextRank Graph-Based Extractive Document Summarization */}
+      <Card>
+        <CardHeader
+          title="TextRank Graph-Based Extractive Document Summarization Model"
+          subtitle="Unsupervised graph-based ranking algorithm (Mihalcea & Tarau) that constructs a sentence similarity network and applies PageRank power iteration to extract the most representative sentences."
+          action={
+            <Badge tone="violet">
+              PageRank Extractive Model
+            </Badge>
+          }
+        />
+        <CardBody className="space-y-5">
+          {/* Controls & Metric Badges */}
+          <div className="grid grid-cols-1 gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-3">
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs font-semibold text-slate-700">
+                <span className="flex items-center gap-1"><Sliders className="h-3 w-3 text-indigo-500" /> Target Sentences:</span>
+                <span className="font-mono text-indigo-600">{summarySentencesCount}</span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="6"
+                step="1"
+                value={summarySentencesCount}
+                onChange={(e) => setSummarySentencesCount(parseInt(e.target.value, 10))}
+                className="w-full accent-indigo-600"
+              />
+              <span className="text-[11px] text-slate-400">Controls summary brevity</span>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs font-semibold text-slate-700">
+                <span className="flex items-center gap-1"><Sliders className="h-3 w-3 text-purple-500" /> Damping Factor (d):</span>
+                <span className="font-mono text-purple-600">{summaryDamping.toFixed(2)}</span>
+              </div>
+              <input
+                type="range"
+                min="0.50"
+                max="0.95"
+                step="0.05"
+                value={summaryDamping}
+                onChange={(e) => setSummaryDamping(parseFloat(e.target.value))}
+                className="w-full accent-purple-600"
+              />
+              <span className="text-[11px] text-slate-400">Random walk restart probability</span>
+            </div>
+
+            <div className="flex flex-col justify-center rounded-lg bg-white p-3 border border-slate-200 text-xs">
+              <div className="text-slate-500">Compression Efficiency</div>
+              <div className="text-lg font-bold text-slate-800">
+                {textRankSummary.compressionRatio}% <span className="text-xs font-normal text-slate-500">of original</span>
+              </div>
+              <div className="text-[11px] text-slate-400">
+                {textRankSummary.summarySentenceCount}/{textRankSummary.originalSentenceCount} sentences · {textRankSummary.summaryWordCount}/{textRankSummary.originalWordCount} words
+              </div>
+            </div>
+          </div>
+
+          {/* Generated Extractive Summary Box */}
+          <div className="rounded-xl border border-purple-200 bg-purple-50/40 p-4">
+            <div className="flex items-center justify-between text-xs font-semibold text-purple-900 pb-2">
+              <span className="flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-purple-600" />
+                TextRank Extracted Summary
+              </span>
+              <span className="font-mono text-[11px] text-purple-600">Converged in {textRankSummary.iterationsRan} iterations</span>
+            </div>
+            <p className="text-sm font-medium leading-relaxed text-slate-800 bg-white p-4 rounded-lg border border-purple-100 shadow-xs">
+              {textRankSummary.summaryText || "(Enter text above with multiple sentences to view summary)"}
+            </p>
+          </div>
+
+          {/* Ranked Sentences by PageRank Score */}
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-100 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                <tr className="border-b border-slate-200">
+                  <th className="py-2.5 px-4">Rank</th>
+                  <th className="py-2.5 px-4">Sentence</th>
+                  <th className="py-2.5 px-4">PageRank Score</th>
+                  <th className="py-2.5 px-4">Centrality</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {textRankSummary.rankedSentences.map((s, idx) => {
+                  const isIncludedInSummary = idx < summarySentencesCount;
+                  return (
+                    <tr
+                      key={s.index}
+                      className={`transition ${isIncludedInSummary ? "bg-purple-50/30 font-medium" : "hover:bg-slate-50 text-slate-600"}`}
+                    >
+                      <td className="py-2.5 px-4">
+                        <span className={`inline-flex items-center justify-center h-5 w-5 rounded-full text-[11px] font-bold ${
+                          isIncludedInSummary ? "bg-purple-600 text-white" : "bg-slate-200 text-slate-700"
+                        }`}>
+                          {idx + 1}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-4 text-xs max-w-md">
+                        <div className="line-clamp-2">{s.sentence}</div>
+                      </td>
+                      <td className="py-2.5 px-4 font-mono text-xs font-bold text-purple-700">
+                        {s.score.toFixed(4)}
+                      </td>
+                      <td className="py-2.5 px-4 text-xs w-36">
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                          <div
+                            className="h-full bg-purple-500 rounded-full"
+                            style={{ width: `${Math.max(10, Math.min(100, s.normalizedRank * 100))}%` }}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Graph Model Formula Note */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600 space-y-1">
+            <span className="font-semibold text-slate-800">PageRank Graph Formulation: </span>
+            <code className="text-slate-700 font-mono text-[11px] bg-white px-1.5 py-0.5 rounded border border-slate-200">
+              WS(Vᵢ) = (1 - d) + d · Σ [ Wⱼᵢ / Σ Wⱼₖ ] · WS(Vⱼ)
+            </code>
+            <p className="pt-1">
+              Nodes represent individual sentences, and edge weights <code className="font-mono">W_ij</code> are computed as log-normalized lexical overlap of shared non-stopword tokens. The power iteration converges on sentences that share central concepts across the entire document.
+            </p>
           </div>
         </CardBody>
       </Card>

@@ -21,6 +21,11 @@ import { identifyLanguage } from "../src/lib/nlp/languageId";
 import { computeMultiMetricSimilarity } from "../src/lib/nlp/semanticSimilarity";
 import { EXPERIMENT_REGISTRY } from "../src/lib/nlp/experimentRegistry";
 import { LANGUAGE_REGISTRY } from "../src/lib/nlp/languageRegistry";
+import { computeReadability, countSyllables } from "../src/lib/nlp/readability";
+import { rankDocumentsBM25 } from "../src/lib/nlp/bm25";
+import { summarizeTextRank } from "../src/lib/nlp/textRank";
+import { runHMMViterbi, HMM_STATES } from "../src/lib/nlp/hmmViterbi";
+import { solveVectorAnalogy, findNearestNeighbors, computePCAProjection2D } from "../src/lib/nlp/embeddings";
 
 let passed = 0;
 let failed = 0;
@@ -405,6 +410,100 @@ runTest("Marathi sentiment, POS tagging, NER, and End-to-End pipeline", () => {
 
   // Language identification
   assert.strictEqual(analysis.languageIdentification?.detectedLanguage, "Marathi");
+});
+
+// --- ADVANCED MODEL 1: Readability & Complexity ---
+console.log("\n• Suite 20: Psycholinguistic Readability & Text Complexity");
+runTest("Readability metrics calculation on academic English text", () => {
+  const text = "Natural language processing is an interdisciplinary subfield of computer science. It studies linguistic interactions.";
+  const metrics = computeReadability(text);
+  assert.ok(metrics.fleschReadingEase >= 0 && metrics.fleschReadingEase <= 100);
+  assert.ok(metrics.fleschKincaidGrade > 0);
+  assert.ok(metrics.gunningFogIndex > 0);
+  assert.ok(metrics.lexicalDensity > 0);
+  assert.strictEqual(metrics.sentenceCount, 2);
+  assert.ok(metrics.wordCount >= 10);
+
+  const simple = computeReadability("The dog barked at the cat. The boy went to school.");
+  assert.ok(simple.fleschReadingEase > 60);
+});
+
+runTest("Syllable and Indic Akshara counting logic", () => {
+  assert.strictEqual(countSyllables("cat"), 1);
+  assert.strictEqual(countSyllables("computer"), 3);
+  assert.strictEqual(countSyllables("intelligence"), 4);
+
+  // Devanagari syllables
+  const mrSyllables = countSyllables("भारत");
+  assert.ok(mrSyllables >= 2);
+});
+
+// --- ADVANCED MODEL 2: Okapi BM25 Ranking ---
+console.log("\n• Suite 21: Okapi BM25 Probabilistic Ranking");
+runTest("BM25 corpus ranking with saturation and length penalties", () => {
+  const corpus = [
+    { id: 1, name: "AI Doc", text: "Natural language processing models understand human speech and written communication." },
+    { id: 2, name: "Cooking Doc", text: "Delicious Italian pizza recipes with tomato sauce, mozzarella cheese, and fresh basil." },
+    { id: 3, name: "Sports Doc", text: "The football tournament championship was won in extra time after penalty shootouts." },
+  ];
+
+  const res = rankDocumentsBM25(corpus, "language models communication", 1.5, 0.75);
+  assert.strictEqual(res.rankedResults.length, 3);
+  assert.strictEqual(res.rankedResults[0].docId, 1); // AI Doc must rank first
+  assert.ok(res.rankedResults[0].score > 0);
+  assert.ok(res.rankedResults[0].termBreakdown.length > 0);
+});
+
+// --- ADVANCED MODEL 3: TextRank Summarization ---
+console.log("\n• Suite 22: TextRank Graph Extractive Summarization");
+runTest("TextRank sentence graph construction and PageRank power iteration", () => {
+  const text = `
+    Natural language processing enables computers to comprehend human speech.
+    Computer algorithms analyze sentence syntax and semantic meaning.
+    Text summarization algorithms extract the most salient ideas from documents.
+    These graph models use PageRank power iteration to find central sentences.
+    Evaluators examine document compression ratios and information retention.
+  `;
+
+  const summary = summarizeTextRank(text, 2, 0.85);
+  assert.strictEqual(summary.summarySentenceCount, 2);
+  assert.ok(summary.compressionRatio < 100);
+  assert.ok(summary.summaryText.length > 0);
+  assert.ok(summary.rankedSentences.length >= 4);
+  assert.ok(summary.iterationsRan > 0);
+});
+
+// --- ADVANCED MODEL 4: HMM & Viterbi Trellis ---
+console.log("\n• Suite 23: Hidden Markov Model (HMM) & Viterbi Algorithm");
+runTest("HMM sequence labeling with dynamic programming trellis", () => {
+  const res = runHMMViterbi("the quick brown fox jumps over the lazy dog");
+  assert.strictEqual(res.tokens.length, 9);
+  assert.strictEqual(res.optimalPath.length, 9);
+  assert.strictEqual(res.optimalPath[0].token, "the");
+  assert.strictEqual(res.optimalPath[0].tag, "DT"); // 'the' must be Determiner
+  assert.strictEqual(res.optimalPath[8].tag, "NN"); // 'dog' must be Noun
+  assert.strictEqual(res.trellis.length, 9);
+  assert.ok(res.totalLogLikelihood < 0); // Log probability of sequence
+});
+
+// --- ADVANCED MODEL 5: Dense Word Embeddings ---
+console.log("\n• Suite 24: Dense Semantic Word Embeddings & Vector Space");
+runTest("Vector analogy arithmetic (king - man + woman = queen)", () => {
+  const analogy = solveVectorAnalogy("king", "man", "woman");
+  assert.strictEqual(analogy.bestMatch, "queen");
+  assert.ok(analogy.topCandidates.length > 0);
+});
+
+runTest("Nearest semantic neighbors and 2D PCA projection", () => {
+  const neighbors = findNearestNeighbors("computer", 3);
+  assert.strictEqual(neighbors.length, 3);
+  assert.ok(neighbors.some((n) => n.word === "algorithm" || n.word === "software" || n.word === "data"));
+
+  const pca = computePCAProjection2D();
+  assert.ok(pca.length >= 20);
+  assert.ok(pca.every((p) => typeof p.x === "number" && typeof p.y === "number"));
+  assert.ok(pca.some((p) => p.cluster === "Tech"));
+  assert.ok(pca.some((p) => p.cluster === "Indic"));
 });
 
 console.log("\n=======================================================");

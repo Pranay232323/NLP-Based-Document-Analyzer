@@ -6,7 +6,8 @@ import { Card, CardBody, CardHeader, SectionHeading, StatCard, Badge, SecondaryB
 import { ExperimentPlayground } from "@/components/experiment-playground";
 import { StepSimulator } from "@/components/ui/step-simulator";
 import { generatePOSTaggingSimulation } from "@/lib/nlp/simulators";
-import { Search, Download, Layers, Tag } from "lucide-react";
+import { runHMMViterbi, type HMMViterbiResult, HMM_STATES } from "@/lib/nlp/hmmViterbi";
+import { Search, Download, Layers, Tag, Cpu, Network, GitBranch } from "lucide-react";
 
 const TAG_COLOR_MAP: Record<string, { bg: string; text: string; tone: "indigo" | "amber" | "emerald" | "violet" | "sky" | "rose" | "slate" }> = {
   NN: { bg: "bg-indigo-50", text: "text-indigo-700", tone: "indigo" },
@@ -40,6 +41,12 @@ export default function PosPage() {
   const { analysis, loading } = useDocument();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
+
+  // HMM Viterbi State & Computation
+  const [hmmSentence, setHmmSentence] = useState("the quick brown fox jumps over the lazy dog");
+  const hmmResult: HMMViterbiResult = useMemo(() => {
+    return runHMMViterbi(hmmSentence.trim() || "the quick brown fox jumps over the lazy dog");
+  }, [hmmSentence]);
 
   const pos = analysis?.pos ?? [];
   const posDistribution = analysis?.posDistribution ?? [];
@@ -290,6 +297,148 @@ export default function PosPage() {
                     )}
                   </tbody>
                 </table>
+              </div>
+            </CardBody>
+          </Card>
+
+          {/* Model: Hidden Markov Model (HMM) & Viterbi Dynamic Programming */}
+          <Card>
+            <CardHeader
+              title="Hidden Markov Model (HMM) & Viterbi Trellis Dynamic Programming Model"
+              subtitle="The foundational probabilistic sequence labeling algorithm in NLP syllabi. Solves POS decoding in O(T·|S|²) using Transition Matrix A, Emission Matrix B, and Backpointer recovery."
+              action={
+                <Badge tone="emerald">
+                  Viterbi DP Matrix
+                </Badge>
+              }
+            />
+            <CardBody className="space-y-5">
+              {/* Sentence Input & Presets */}
+              <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                  <Network className="h-3.5 w-3.5 text-indigo-500" />
+                  Sequence Input for HMM Decoding:
+                </label>
+                <input
+                  type="text"
+                  value={hmmSentence}
+                  onChange={(e) => setHmmSentence(e.target.value)}
+                  placeholder="Enter sentence for Viterbi tagging..."
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100"
+                />
+                <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 pt-1">
+                  <span className="font-semibold text-slate-600">Sample Presets:</span>
+                  {[
+                    "the quick brown fox jumps over the lazy dog",
+                    "natural language models process text",
+                    "a student studies hard in college",
+                  ].map((preset) => (
+                    <button
+                      key={preset}
+                      onClick={() => setHmmSentence(preset)}
+                      className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-700 hover:bg-slate-100 transition"
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Optimal Viterbi Path */}
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
+                <div className="text-xs font-semibold text-emerald-900 pb-2 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <GitBranch className="h-3.5 w-3.5 text-emerald-600" />
+                    Decoded Optimal Viterbi Path (arg max P(T | W))
+                  </span>
+                  <span className="font-mono text-[11px] text-emerald-700">
+                    Joint Log-Likelihood: {hmmResult.totalLogLikelihood.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {hmmResult.optimalPath.map((item, idx) => (
+                    <div key={`${item.token}-${idx}`} className="flex items-center gap-1.5">
+                      <div className="flex flex-col items-center rounded-lg border border-emerald-200 bg-white px-2.5 py-1.5 shadow-xs">
+                        <span className="text-xs font-bold text-slate-900">{item.token}</span>
+                        <div className="mt-0.5 flex items-center gap-1">
+                          <span className="font-mono text-[11px] font-bold text-emerald-700">{item.tag}</span>
+                          <span className="text-[10px] text-slate-400">({(item.confidence * 100).toFixed(0)}%)</span>
+                        </div>
+                      </div>
+                      {idx < hmmResult.optimalPath.length - 1 && (
+                        <span className="text-xs font-bold text-slate-300">→</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Viterbi Trellis Dynamic Programming Table */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                  <span className="flex items-center gap-1.5">
+                    <Cpu className="h-3.5 w-3.5 text-indigo-500" />
+                    Viterbi Trellis Matrix [v_t(j)]
+                  </span>
+                  <span className="text-slate-400 text-[11px]">Columns: Observations w_t · Rows: Hidden States s_j</span>
+                </div>
+
+                <div className="overflow-x-auto rounded-xl border border-slate-200">
+                  <table className="w-full min-w-[600px] text-center text-xs">
+                    <thead className="bg-slate-100 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                      <tr className="border-b border-slate-200">
+                        <th className="py-2.5 px-3 text-left">State \ Step</th>
+                        {hmmResult.trellis.map((col, idx) => (
+                          <th key={idx} className="py-2.5 px-3">
+                            <div className="font-bold text-slate-900">{col.token}</div>
+                            <div className="text-[10px] text-slate-400 font-normal">t = {idx + 1}</div>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white font-mono">
+                      {hmmResult.states.map((state) => (
+                        <tr key={state} className="hover:bg-slate-50 transition">
+                          <td className="py-2.5 px-3 text-left font-bold text-slate-800 bg-slate-50/50">
+                            {state}
+                          </td>
+                          {hmmResult.trellis.map((col, idx) => {
+                            const cell = col.cells[state];
+                            const isOptimal = col.bestTag === state;
+                            return (
+                              <td
+                                key={idx}
+                                className={`py-2 px-3 text-[11px] transition ${
+                                  isOptimal
+                                    ? "bg-emerald-100/70 font-bold text-emerald-900 border-2 border-emerald-400 rounded"
+                                    : "text-slate-500"
+                                }`}
+                              >
+                                <div>{cell ? cell.logProb.toFixed(2) : "-∞"}</div>
+                                {cell?.backpointerTag && (
+                                  <div className="text-[9px] text-slate-400 font-sans">
+                                    ← {cell.backpointerTag}
+                                  </div>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Viterbi Mathematical Formalism & Recurrence */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600 space-y-1.5">
+                <div className="font-semibold text-slate-800">Dynamic Programming Recurrence Formulation:</div>
+                <code className="block rounded bg-white p-2 font-mono text-[11px] text-slate-800 border border-slate-200">
+                  v_t(j) = max_i [ v_{"t-1"}(i) · A_{"ij"} ] · B_j(w_t), &nbsp;&nbsp; backpointer_t(j) = argmax_i [ v_{"t-1"}(i) · A_{"ij"} ]
+                </code>
+                <p className="text-slate-600">
+                  <strong>Academic Significance:</strong> A brute-force search over sequence length <code className="font-mono">T</code> with <code className="font-mono">|S|</code> tags requires exponential time <code className="font-mono">O(|S|^T)</code>. The Viterbi algorithm utilizes memoization over the trellis lattice to find the globally optimal path in polynomial time <code className="font-mono">O(T · |S|²)</code>.
+                </p>
               </div>
             </CardBody>
           </Card>
