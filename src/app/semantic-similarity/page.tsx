@@ -25,6 +25,8 @@ import {
   type VectorAnalogyResult,
   type WordEmbeddingPoint2D,
 } from "@/lib/nlp/embeddings";
+import { getExperimentPedagogy } from "@/lib/nlp/pedagogy";
+import { PedagogyPanel, LinguisticPresetsBar } from "@/components/ui/pedagogy-panel";
 import { AlertCircle, Scale, ShieldAlert, Download, FileText, ArrowRightLeft, Compass, Sparkles, Orbit, Calculator } from "lucide-react";
 
 export default function SemanticSimilarityPage() {
@@ -52,6 +54,8 @@ export default function SemanticSimilarityPage() {
   const pcaPoints: WordEmbeddingPoint2D[] = useMemo(() => {
     return computePCAProjection2D();
   }, []);
+
+  const pedagogy = useMemo(() => getExperimentPedagogy("semantic-similarity"), []);
 
   function runComparison(pA: string, pB: string) {
     if (!pA.trim() || !pB.trim()) {
@@ -133,6 +137,16 @@ export default function SemanticSimilarityPage() {
         title="Multi-Metric Semantic Similarity"
         description="Analyzes text similarity across Lexical (TF-IDF), Syntactic (Token Jaccard), Morphological (Character Tri-grams), and Soft-Lemma Semantic dimensions. Contrasts verbatim word overlap against semantic paraphrasing in English, Hindi, and Marathi."
       />
+
+      {pedagogy?.linguisticPresets && (
+        <LinguisticPresetsBar
+          presets={pedagogy.linguisticPresets}
+          onSelect={(presetText) => {
+            setTextA(presetText);
+            runComparison(presetText, textB);
+          }}
+        />
+      )}
 
       {/* SAMPLE SELECTOR & INPUT AREA */}
       <Card>
@@ -548,6 +562,17 @@ export default function SemanticSimilarityPage() {
           </div>
         </CardBody>
       </Card>
+
+      {/* Student Learning, Viva Voce & Lab Manual Hub */}
+      {pedagogy && (
+        <PedagogyPanel
+          pedagogy={pedagogy}
+          onApplyPreset={(presetText) => {
+            setTextA(presetText);
+            runComparison(presetText, textB);
+          }}
+        />
+      )}
 
       {/* ACADEMIC PLAGIARISM DISCLAIMER */}
       <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-xs text-amber-900">

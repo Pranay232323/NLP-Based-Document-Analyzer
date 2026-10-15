@@ -26,6 +26,7 @@ import { rankDocumentsBM25 } from "../src/lib/nlp/bm25";
 import { summarizeTextRank } from "../src/lib/nlp/textRank";
 import { runHMMViterbi, HMM_STATES } from "../src/lib/nlp/hmmViterbi";
 import { solveVectorAnalogy, findNearestNeighbors, computePCAProjection2D } from "../src/lib/nlp/embeddings";
+import { getExperimentPedagogy, PEDAGOGY_REGISTRY } from "../src/lib/nlp/pedagogy";
 
 let passed = 0;
 let failed = 0;
@@ -504,6 +505,33 @@ runTest("Nearest semantic neighbors and 2D PCA projection", () => {
   assert.ok(pca.every((p) => typeof p.x === "number" && typeof p.y === "number"));
   assert.ok(pca.some((p) => p.cluster === "Tech"));
   assert.ok(pca.some((p) => p.cluster === "Indic"));
+});
+
+// --- PEDAGOGY & STUDENT LEARNING HUB ---
+console.log("\n• Suite 25: Pedagogy, Viva Voce & Lab Manual Hub");
+runTest("Pedagogy registry covers syllabus experiments with complete academic metadata", () => {
+  const expIds = ["preprocessing", "stemlemma", "ngram", "pos", "ner", "similarity", "sentiment", "keywords", "semantic-similarity"];
+  for (const id of expIds) {
+    const ped = getExperimentPedagogy(id);
+    assert.ok(ped, `Pedagogy for ${id} must exist`);
+    assert.ok(ped.vivaQuestions.length >= 3, `Pedagogy for ${id} must have >= 3 viva questions`);
+    assert.ok(ped.quiz.length >= 2, `Pedagogy for ${id} must have >= 2 quiz questions`);
+    assert.ok(ped.linguisticPresets.length >= 2, `Pedagogy for ${id} must have >= 2 presets`);
+    assert.ok(ped.labManual.aim.length > 10, `Aim for ${id} must be non-empty`);
+    assert.ok(ped.labManual.algorithm.length >= 4, `Algorithm for ${id} must have >= 4 steps`);
+    assert.ok(ped.labManual.conclusionTemplate.length > 10, `Conclusion for ${id} must be non-empty`);
+    assert.ok(ped.complexity.time.length > 0, `Time complexity for ${id} must be defined`);
+  }
+});
+
+runTest("Concept self-check quizzes have valid correct options and non-empty explanations", () => {
+  for (const [, ped] of Object.entries(PEDAGOGY_REGISTRY)) {
+    for (const q of ped.quiz) {
+      assert.ok(q.options.length >= 2, `Quiz ${q.id} must have >= 2 options`);
+      assert.ok(q.correctIndex >= 0 && q.correctIndex < q.options.length, `Quiz ${q.id} correctIndex must be in range`);
+      assert.ok(q.explanation.length > 5, `Quiz ${q.id} explanation must be non-empty`);
+    }
+  }
 });
 
 console.log("\n=======================================================");

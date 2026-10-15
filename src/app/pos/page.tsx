@@ -7,6 +7,8 @@ import { ExperimentPlayground } from "@/components/experiment-playground";
 import { StepSimulator } from "@/components/ui/step-simulator";
 import { generatePOSTaggingSimulation } from "@/lib/nlp/simulators";
 import { runHMMViterbi, type HMMViterbiResult, HMM_STATES } from "@/lib/nlp/hmmViterbi";
+import { getExperimentPedagogy } from "@/lib/nlp/pedagogy";
+import { PedagogyPanel, LinguisticPresetsBar } from "@/components/ui/pedagogy-panel";
 import { Search, Download, Layers, Tag, Cpu, Network, GitBranch } from "lucide-react";
 
 const TAG_COLOR_MAP: Record<string, { bg: string; text: string; tone: "indigo" | "amber" | "emerald" | "violet" | "sky" | "rose" | "slate" }> = {
@@ -38,9 +40,11 @@ function getTagMeta(tag: string) {
 }
 
 export default function PosPage() {
-  const { analysis, loading } = useDocument();
+  const { analysis, loading, analyzeText } = useDocument();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
+
+  const pedagogy = useMemo(() => getExperimentPedagogy("pos"), []);
 
   // HMM Viterbi State & Computation
   const [hmmSentence, setHmmSentence] = useState("the quick brown fox jumps over the lazy dog");
@@ -100,6 +104,13 @@ export default function PosPage() {
       />
 
       <ExperimentPlayground moduleTitle="Part-of-Speech Tagging" />
+
+      {pedagogy?.linguisticPresets && (
+        <LinguisticPresetsBar
+          presets={pedagogy.linguisticPresets}
+          onSelect={(presetText) => analyzeText(presetText, "Linguistic Edge Case Preset")}
+        />
+      )}
 
       {/* INTERACTIVE ALGORITHM SIMULATOR */}
       <StepSimulator
@@ -442,6 +453,14 @@ export default function PosPage() {
               </div>
             </CardBody>
           </Card>
+
+          {/* Student Learning, Viva Voce & Lab Manual Hub */}
+          {pedagogy && (
+            <PedagogyPanel
+              pedagogy={pedagogy}
+              onApplyPreset={(presetText) => analyzeText(presetText, "Linguistic Preset")}
+            />
+          )}
         </>
       )}
     </div>

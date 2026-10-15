@@ -21,6 +21,8 @@ import {
   SAMPLE_SENTIMENT_TEXTS,
   type SentimentAnalysisResult,
 } from "@/lib/nlp/sentiment";
+import { getExperimentPedagogy } from "@/lib/nlp/pedagogy";
+import { PedagogyPanel, LinguisticPresetsBar } from "@/components/ui/pedagogy-panel";
 import {
   AlertCircle,
   ThumbsUp,
@@ -32,7 +34,8 @@ import {
 } from "lucide-react";
 
 export default function SentimentPage() {
-  const { rawText, docName } = useDocument();
+  const { rawText, docName, analyzeText } = useDocument();
+  const pedagogy = useMemo(() => getExperimentPedagogy("sentiment"), []);
   const [inputText, setInputText] = useState(
     () => rawText || SAMPLE_SENTIMENT_TEXTS[0].text
   );
@@ -61,15 +64,16 @@ export default function SentimentPage() {
     setError(null);
   }
 
-  function handleAnalyze() {
+  function handleAnalyze(overrideText?: unknown) {
+    const textToAnalyze = typeof overrideText === "string" ? overrideText : inputText;
     setError(null);
-    if (!inputText.trim()) {
+    if (!textToAnalyze.trim()) {
       setError("Please paste text or load a sample before running sentiment analysis.");
       return;
     }
     setLoading(true);
     try {
-      const res = analyzeSentiment(inputText);
+      const res = analyzeSentiment(textToAnalyze);
       setResult(res);
     } catch {
       setError("Sentiment calculation failed.");
@@ -169,6 +173,17 @@ export default function SentimentPage() {
           }
         }}
       />
+
+      {pedagogy?.linguisticPresets && (
+        <LinguisticPresetsBar
+          presets={pedagogy.linguisticPresets}
+          onSelect={(presetText) => {
+            setInputText(presetText);
+            handleAnalyze(presetText);
+            analyzeText(presetText, "Linguistic Edge Case Preset");
+          }}
+        />
+      )}
 
       {/* INTERACTIVE ALGORITHM SIMULATOR */}
       <StepSimulator
@@ -513,6 +528,18 @@ export default function SentimentPage() {
             </div>
           </CardBody>
         </Card>
+
+        {/* Student Learning, Viva Voce & Lab Manual Hub */}
+        {pedagogy && (
+          <PedagogyPanel
+            pedagogy={pedagogy}
+            onApplyPreset={(presetText) => {
+              setInputText(presetText);
+              handleAnalyze(presetText);
+              analyzeText(presetText, "Linguistic Preset");
+            }}
+          />
+        )}
       </div>
     </div>
   );

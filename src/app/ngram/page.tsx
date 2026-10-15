@@ -6,11 +6,13 @@ import { Card, CardBody, CardHeader, SectionHeading, Badge, PrimaryButton, Secon
 import { ExperimentPlayground } from "@/components/experiment-playground";
 import { StepSimulator } from "@/components/ui/step-simulator";
 import { generateNGramSimulation } from "@/lib/nlp/simulators";
+import { getExperimentPedagogy } from "@/lib/nlp/pedagogy";
+import { PedagogyPanel, LinguisticPresetsBar } from "@/components/ui/pedagogy-panel";
 import type { NGramGeneration, NGramPrediction } from "@/lib/nlp/types";
 import { Sparkles, ArrowRight, Wand2, Search } from "lucide-react";
 
 export default function NGramPage() {
-  const { analysis, rawText, loading: docLoading } = useDocument();
+  const { analysis, rawText, loading: docLoading, analyzeText } = useDocument();
   const [n, setN] = useState<number>(2);
   const [context, setContext] = useState("natural");
   const [seed, setSeed] = useState("natural");
@@ -19,6 +21,8 @@ export default function NGramPage() {
   const [generation, setGeneration] = useState<NGramGeneration | null>(null);
   const [loading, setLoading] = useState<"predict" | "generate" | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const pedagogy = useMemo(() => getExperimentPedagogy("ngram"), []);
 
   const simTarget = rawText?.slice(0, 160) || "Artificial intelligence and natural language processing empower modern software systems.";
   const simulation = useMemo(() => generateNGramSimulation(simTarget, n), [simTarget, n]);
@@ -58,6 +62,13 @@ export default function NGramPage() {
       />
 
       <ExperimentPlayground moduleTitle="N-Gram Lab" />
+
+      {pedagogy?.linguisticPresets && (
+        <LinguisticPresetsBar
+          presets={pedagogy.linguisticPresets}
+          onSelect={(presetText) => analyzeText(presetText, "Linguistic Preset")}
+        />
+      )}
 
       {/* INTERACTIVE ALGORITHM SIMULATOR */}
       <StepSimulator
@@ -241,6 +252,14 @@ export default function NGramPage() {
           </div>
 
           {error && <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-600 ring-1 ring-rose-100">{error}</p>}
+
+          {/* Student Learning, Viva Voce & Lab Manual Hub */}
+          {pedagogy && (
+            <PedagogyPanel
+              pedagogy={pedagogy}
+              onApplyPreset={(presetText) => analyzeText(presetText, "Linguistic Preset")}
+            />
+          )}
         </>
       )}
     </div>

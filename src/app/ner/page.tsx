@@ -7,6 +7,8 @@ import { ExperimentPlayground } from "@/components/experiment-playground";
 import { StepSimulator } from "@/components/ui/step-simulator";
 import { generateNERSimulation } from "@/lib/nlp/simulators";
 import { buildHighlightSegments } from "@/lib/nlp/highlight";
+import { getExperimentPedagogy } from "@/lib/nlp/pedagogy";
+import { PedagogyPanel, LinguisticPresetsBar } from "@/components/ui/pedagogy-panel";
 import { Search, Download, ShieldCheck, Tag } from "lucide-react";
 
 const TYPE_COLORS: Record<string, { bg: string; text: string; badgeTone: "indigo" | "violet" | "sky" | "emerald" | "amber" | "rose" | "slate" }> = {
@@ -27,9 +29,11 @@ function getColorMeta(type: string) {
 }
 
 export default function NerPage() {
-  const { analysis, loading } = useDocument();
+  const { analysis, loading, analyzeText } = useDocument();
   const [selectedType, setSelectedType] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const pedagogy = useMemo(() => getExperimentPedagogy("ner"), []);
 
   const entities = analysis?.entities ?? [];
   const rawText = analysis?.rawText ?? "";
@@ -86,6 +90,13 @@ export default function NerPage() {
       />
 
       <ExperimentPlayground moduleTitle="Named Entity Recognition" />
+
+      {pedagogy?.linguisticPresets && (
+        <LinguisticPresetsBar
+          presets={pedagogy.linguisticPresets}
+          onSelect={(presetText) => analyzeText(presetText, "Linguistic Edge Case Preset")}
+        />
+      )}
 
       {/* INTERACTIVE ALGORITHM SIMULATOR */}
       <StepSimulator
@@ -243,6 +254,14 @@ export default function NerPage() {
               </div>
             </CardBody>
           </Card>
+
+          {/* Student Learning, Viva Voce & Lab Manual Hub */}
+          {pedagogy && (
+            <PedagogyPanel
+              pedagogy={pedagogy}
+              onApplyPreset={(presetText) => analyzeText(presetText, "Linguistic Preset")}
+            />
+          )}
         </>
       )}
     </div>

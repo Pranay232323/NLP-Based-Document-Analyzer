@@ -7,10 +7,12 @@ import { ExperimentPlayground } from "@/components/experiment-playground";
 import { StepSimulator } from "@/components/ui/step-simulator";
 import { generatePreprocessingSimulation } from "@/lib/nlp/simulators";
 import { computeReadability } from "@/lib/nlp/readability";
+import { getExperimentPedagogy } from "@/lib/nlp/pedagogy";
+import { PedagogyPanel, LinguisticPresetsBar } from "@/components/ui/pedagogy-panel";
 import { Search, Download, Filter, CheckCircle2, BookOpen, Gauge, FileText } from "lucide-react";
 
 export default function PreprocessingPage() {
-  const { analysis, loading } = useDocument();
+  const { analysis, loading, analyzeText } = useDocument();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"all" | "filtered" | "stopwords" | "numeric">("filtered");
 
@@ -19,6 +21,7 @@ export default function PreprocessingPage() {
   const simTarget = analysis?.rawText?.slice(0, 160) || "Natural language processing is concerned with interactions between computers and language.";
   const simulation = useMemo(() => generatePreprocessingSimulation(simTarget), [simTarget]);
   const readability = useMemo(() => computeReadability(analysis?.rawText || simTarget), [analysis?.rawText, simTarget]);
+  const pedagogy = useMemo(() => getExperimentPedagogy("preprocessing"), []);
 
   function filterTokens(tokens: string[] = []) {
     if (!searchQuery.trim()) return tokens;
@@ -64,6 +67,13 @@ export default function PreprocessingPage() {
 
       <ExperimentPlayground moduleTitle="Text Preprocessing" />
       
+      {pedagogy?.linguisticPresets && (
+        <LinguisticPresetsBar
+          presets={pedagogy.linguisticPresets}
+          onSelect={(presetText) => analyzeText(presetText, "Linguistic Edge Case Preset")}
+        />
+      )}
+
       {/* INTERACTIVE ALGORITHM SIMULATOR */}
       <StepSimulator
         title="Visual Tokenizer & Stopword Filtration Simulator"
@@ -348,6 +358,14 @@ export default function PreprocessingPage() {
               </div>
             </CardBody>
           </Card>
+
+          {/* Student Learning, Viva Voce & Lab Manual Hub */}
+          {pedagogy && (
+            <PedagogyPanel
+              pedagogy={pedagogy}
+              onApplyPreset={(presetText) => analyzeText(presetText, "Linguistic Preset")}
+            />
+          )}
         </>
       )}
     </div>

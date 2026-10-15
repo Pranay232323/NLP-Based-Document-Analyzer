@@ -6,6 +6,8 @@ import { Card, CardBody, CardHeader, SectionHeading, Badge, PrimaryButton, Secon
 import { SAMPLE_DOC_A, SAMPLE_DOC_A_NAME, SAMPLE_DOC_B, SAMPLE_DOC_B_NAME, SAMPLE_HINDI_TEXT, SAMPLE_MARATHI_TEXT } from "@/lib/nlp/sampleData";
 import type { SimilarityResult } from "@/lib/nlp/types";
 import { rankDocumentsBM25, type BM25ComparisonResult } from "@/lib/nlp/bm25";
+import { getExperimentPedagogy } from "@/lib/nlp/pedagogy";
+import { PedagogyPanel, LinguisticPresetsBar } from "@/components/ui/pedagogy-panel";
 import { Scale, Search, Sparkles, FileText, Download, CheckCircle2, AlertTriangle, Sliders, Database } from "lucide-react";
 
 const LEVEL_CONFIG = {
@@ -65,6 +67,8 @@ export default function SimilarityPage() {
   const [bm25Query, setBm25Query] = useState("language processing systems");
   const [bm25K1, setBm25K1] = useState(1.5);
   const [bm25B, setBm25B] = useState(0.75);
+
+  const pedagogy = useMemo(() => getExperimentPedagogy("similarity"), []);
 
   const bm25Result: BM25ComparisonResult = useMemo(() => {
     const corpus = [
@@ -168,6 +172,16 @@ export default function SimilarityPage() {
           </div>
         </div>
       </Card>
+
+      {pedagogy?.linguisticPresets && (
+        <LinguisticPresetsBar
+          presets={pedagogy.linguisticPresets}
+          onSelect={(presetText) => {
+            setDocAText(presetText);
+            handleCompare(presetText, docBText);
+          }}
+        />
+      )}
 
       {/* Input Editors for Document A & Document B */}
       <div className="grid gap-4 lg:grid-cols-2">
@@ -464,6 +478,17 @@ export default function SimilarityPage() {
             </CardBody>
           </Card>
         </div>
+      )}
+
+      {/* Student Learning, Viva Voce & Lab Manual Hub */}
+      {pedagogy && (
+        <PedagogyPanel
+          pedagogy={pedagogy}
+          onApplyPreset={(presetText) => {
+            setDocAText(presetText);
+            handleCompare(presetText, docBText);
+          }}
+        />
       )}
     </div>
   );

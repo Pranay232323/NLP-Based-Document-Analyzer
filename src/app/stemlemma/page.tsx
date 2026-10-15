@@ -6,10 +6,12 @@ import { Card, CardBody, CardHeader, SectionHeading, StatCard, Badge, SecondaryB
 import { ExperimentPlayground } from "@/components/experiment-playground";
 import { StepSimulator } from "@/components/ui/step-simulator";
 import { generateStemLemmaSimulation } from "@/lib/nlp/simulators";
+import { getExperimentPedagogy } from "@/lib/nlp/pedagogy";
+import { PedagogyPanel, LinguisticPresetsBar } from "@/components/ui/pedagogy-panel";
 import { Search, Download, GitCompare, Info } from "lucide-react";
 
 export default function StemLemmaPage() {
-  const { analysis, loading } = useDocument();
+  const { analysis, loading, analyzeText } = useDocument();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<"all" | "stemChanged" | "lemmaChanged" | "divergent">("all");
 
@@ -18,6 +20,7 @@ export default function StemLemmaPage() {
 
   const simTarget = analysis?.rawText?.slice(0, 160) || "The researchers were studying and analyzing algorithmic systems.";
   const simulation = useMemo(() => generateStemLemmaSimulation(simTarget), [simTarget]);
+  const pedagogy = useMemo(() => getExperimentPedagogy("stemlemma"), []);
 
   const changedByStem = stemLemma.filter((r) => r.stemmed !== r.word).length;
   const changedByLemma = stemLemma.filter((r) => r.lemmatized !== r.word).length;
@@ -64,6 +67,13 @@ export default function StemLemmaPage() {
       />
 
       <ExperimentPlayground moduleTitle="Stemming & Lemmatization" />
+      
+      {pedagogy?.linguisticPresets && (
+        <LinguisticPresetsBar
+          presets={pedagogy.linguisticPresets}
+          onSelect={(presetText) => analyzeText(presetText, "Linguistic Edge Case Preset")}
+        />
+      )}
 
       {/* INTERACTIVE ALGORITHM SIMULATOR */}
       <StepSimulator
@@ -218,6 +228,14 @@ export default function StemLemmaPage() {
               )}
             </CardBody>
           </Card>
+
+          {/* Student Learning, Viva Voce & Lab Manual Hub */}
+          {pedagogy && (
+            <PedagogyPanel
+              pedagogy={pedagogy}
+              onApplyPreset={(presetText) => analyzeText(presetText, "Linguistic Preset")}
+            />
+          )}
         </>
       )}
     </div>

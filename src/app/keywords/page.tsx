@@ -19,6 +19,8 @@ import {
   type KeywordExtractionComparison,
 } from "@/lib/nlp/keywords";
 import { summarizeTextRank, type TextRankSummaryResult } from "@/lib/nlp/textRank";
+import { getExperimentPedagogy } from "@/lib/nlp/pedagogy";
+import { PedagogyPanel, LinguisticPresetsBar } from "@/components/ui/pedagogy-panel";
 import { AlertCircle, Download, Search, CheckCircle2, FileText, Share2, Sparkles, Sliders } from "lucide-react";
 
 const SAMPLE_ENGLISH_TEXT = `Natural language processing is an interdisciplinary subfield of computer science and artificial intelligence. It is primarily concerned with the interactions between computers and human language, in particular how to program computers to process and analyze large amounts of natural language data. The goal is a computer capable of understanding the contents of documents, including the contextual nuances of the language within them. The technology can then accurately extract information and insights contained in the documents as well as categorize and organize the documents themselves. Challenges in natural language processing frequently involve speech recognition, natural-language understanding, and natural-language generation.`;
@@ -28,7 +30,8 @@ const SAMPLE_HINDI_TEXT = `प्राकृतिक भाषा प्रस
 const SAMPLE_MARATHI_TEXT = `नैसर्गिक भाषा प्रक्रिया आणि संगणकीय भाषाशास्त्र मानवी भाषेचे विश्लेषण करण्यासाठी प्रगत अल्गोरिदम वापरतात. यामुळे माहिती संकलन, मजकूर वर्गीकरण आणि भावना विश्लेषण अधिक अचूक बनते. आधुनिक तंत्रज्ञान आणि मशीन लर्निंग मॉडेल्समुळे विविध भाषांमधील भाषिक डेटा सहजपणे प्रक्रिया करणे शक्य झाले आहे.`;
 
 export default function KeywordsPage() {
-  const { analysis, rawText, docName } = useDocument();
+  const { analysis, rawText, docName, analyzeText } = useDocument();
+  const pedagogy = useMemo(() => getExperimentPedagogy("keywords"), []);
   const [inputText, setInputText] = useState(
     () => rawText || SAMPLE_ENGLISH_TEXT
   );
@@ -149,6 +152,17 @@ export default function KeywordsPage() {
           }
         }}
       />
+
+      {pedagogy?.linguisticPresets && (
+        <LinguisticPresetsBar
+          presets={pedagogy.linguisticPresets}
+          onSelect={(presetText) => {
+            setInputText(presetText);
+            runExtract(presetText);
+            analyzeText(presetText, "Linguistic Edge Case Preset");
+          }}
+        />
+      )}
 
       {/* INPUT AREA */}
       <Card>
@@ -493,6 +507,18 @@ export default function KeywordsPage() {
           </div>
         </CardBody>
       </Card>
+
+      {/* Student Learning, Viva Voce & Lab Manual Hub */}
+      {pedagogy && (
+        <PedagogyPanel
+          pedagogy={pedagogy}
+          onApplyPreset={(presetText) => {
+            setInputText(presetText);
+            runExtract(presetText);
+            analyzeText(presetText, "Linguistic Preset");
+          }}
+        />
+      )}
     </div>
   );
 }
