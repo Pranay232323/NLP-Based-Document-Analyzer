@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useDocument } from "@/components/document-context";
 import { Card, CardBody, CardHeader, SectionHeading, StatCard, Badge, SecondaryButton, Spinner } from "@/components/ui/primitives";
 import { ExperimentPlayground } from "@/components/experiment-playground";
+import { StepSimulator } from "@/components/ui/step-simulator";
+import { generateStemLemmaSimulation } from "@/lib/nlp/simulators";
 import { Search, Download, GitCompare, Info } from "lucide-react";
 
 export default function StemLemmaPage() {
@@ -13,6 +15,9 @@ export default function StemLemmaPage() {
 
   const stemLemma = analysis?.stemLemma ?? [];
   const preprocessing = analysis?.preprocessing;
+
+  const simTarget = analysis?.rawText?.slice(0, 160) || "The researchers were studying and analyzing algorithmic systems.";
+  const simulation = useMemo(() => generateStemLemmaSimulation(simTarget), [simTarget]);
 
   const changedByStem = stemLemma.filter((r) => r.stemmed !== r.word).length;
   const changedByLemma = stemLemma.filter((r) => r.lemmatized !== r.word).length;
@@ -59,6 +64,15 @@ export default function StemLemmaPage() {
       />
 
       <ExperimentPlayground moduleTitle="Stemming & Lemmatization" />
+
+      {/* INTERACTIVE ALGORITHM SIMULATOR */}
+      <StepSimulator
+        title="Visual Stemming vs Lemmatization Simulator"
+        subtitle="Watch Porter rule suffix stripping versus morphological dictionary lookup step-by-step"
+        tokens={simulation.tokens}
+        steps={simulation.steps}
+        badgeText="Exp 3 Simulator"
+      />
 
       {loading && !analysis && (
         <div className="flex h-48 items-center justify-center">

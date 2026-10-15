@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useDocument } from "@/components/document-context";
 import { Card, CardBody, CardHeader, SectionHeading, StatCard, Badge, SecondaryButton, Spinner } from "@/components/ui/primitives";
 import { ExperimentPlayground } from "@/components/experiment-playground";
+import { StepSimulator } from "@/components/ui/step-simulator";
+import { generateNERSimulation } from "@/lib/nlp/simulators";
 import { buildHighlightSegments } from "@/lib/nlp/highlight";
 import { Search, Download, ShieldCheck, Tag } from "lucide-react";
 
@@ -72,6 +74,9 @@ export default function NerPage() {
     URL.revokeObjectURL(url);
   }
 
+  const simTarget = rawText?.slice(0, 160) || "On 14 अक्टूबर 2026, ISRO announced new satellites in Delhi.";
+  const simulation = useMemo(() => generateNERSimulation(simTarget), [simTarget]);
+
   return (
     <div className="space-y-6">
       <SectionHeading
@@ -81,6 +86,15 @@ export default function NerPage() {
       />
 
       <ExperimentPlayground moduleTitle="Named Entity Recognition" />
+
+      {/* INTERACTIVE ALGORITHM SIMULATOR */}
+      <StepSimulator
+        title="Visual Named Entity Recognition Scanner"
+        subtitle="Watch the entity recognizer scan words, check gazetteers and dates, and classify entities or 'O' step-by-step"
+        tokens={simulation.tokens}
+        steps={simulation.steps}
+        badgeText="Exp 8 Simulator"
+      />
 
       {loading && !analysis && (
         <div className="flex h-48 items-center justify-center">

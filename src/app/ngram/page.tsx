@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useDocument } from "@/components/document-context";
 import { Card, CardBody, CardHeader, SectionHeading, Badge, PrimaryButton, SecondaryButton, Spinner, StatCard } from "@/components/ui/primitives";
 import { ExperimentPlayground } from "@/components/experiment-playground";
+import { StepSimulator } from "@/components/ui/step-simulator";
+import { generateNGramSimulation } from "@/lib/nlp/simulators";
 import type { NGramGeneration, NGramPrediction } from "@/lib/nlp/types";
 import { Sparkles, ArrowRight, Wand2, Search } from "lucide-react";
 
@@ -17,6 +19,9 @@ export default function NGramPage() {
   const [generation, setGeneration] = useState<NGramGeneration | null>(null);
   const [loading, setLoading] = useState<"predict" | "generate" | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const simTarget = rawText?.slice(0, 160) || "Artificial intelligence and natural language processing empower modern software systems.";
+  const simulation = useMemo(() => generateNGramSimulation(simTarget, n), [simTarget, n]);
 
   async function callApi(action: "predict" | "generate") {
     if (!rawText.trim()) {
@@ -53,6 +58,15 @@ export default function NGramPage() {
       />
 
       <ExperimentPlayground moduleTitle="N-Gram Lab" />
+
+      {/* INTERACTIVE ALGORITHM SIMULATOR */}
+      <StepSimulator
+        title="Visual N-Gram Sliding Window Simulator"
+        subtitle={`Watch the sliding window of size N=${n} traverse tokens, calculating Markov conditional probabilities step-by-step`}
+        tokens={simulation.tokens}
+        steps={simulation.steps}
+        badgeText={`N=${n} Window Simulator`}
+      />
 
       {docLoading && !analysis && (
         <div className="flex h-48 items-center justify-center">

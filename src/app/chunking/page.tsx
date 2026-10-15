@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useDocument } from "@/components/document-context";
 import { Card, CardBody, CardHeader, SectionHeading, StatCard, Badge, SecondaryButton, Spinner } from "@/components/ui/primitives";
 import { ExperimentPlayground } from "@/components/experiment-playground";
+import { StepSimulator } from "@/components/ui/step-simulator";
+import { generateChunkingSimulation } from "@/lib/nlp/simulators";
 import { Search, Download, Layers, Sparkles } from "lucide-react";
 
 const TYPE_CONFIG = {
@@ -34,6 +36,9 @@ export default function ChunkingPage() {
 
   const chunks = analysis?.chunks ?? [];
   const sentences = analysis?.sentences ?? [];
+
+  const simTargetSentence = sentences[0] || analysis?.rawText || "The professor delivered an excellent lecture on natural language processing.";
+  const simulation = useMemo(() => generateChunkingSimulation(simTargetSentence), [simTargetSentence]);
 
   const npCount = chunks.filter((c) => c.type === "NP").length;
   const vpCount = chunks.filter((c) => c.type === "VP").length;
@@ -75,6 +80,15 @@ export default function ChunkingPage() {
       />
 
       <ExperimentPlayground moduleTitle="Chunk Analyzer" />
+
+      {/* INTERACTIVE ALGORITHM SIMULATOR */}
+      <StepSimulator
+        title="Visual Phrase Chunker Simulator"
+        subtitle="Watch the grammatical parser scan tokens and group them into Noun Phrases [NP] and Verb Phrases [VP] step-by-step"
+        tokens={simulation.tokens}
+        steps={simulation.steps}
+        badgeText="Exp 7 Simulation"
+      />
 
       {loading && !analysis && (
         <div className="flex h-48 items-center justify-center">

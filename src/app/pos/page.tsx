@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useDocument } from "@/components/document-context";
 import { Card, CardBody, CardHeader, SectionHeading, StatCard, Badge, SecondaryButton, Spinner } from "@/components/ui/primitives";
 import { ExperimentPlayground } from "@/components/experiment-playground";
+import { StepSimulator } from "@/components/ui/step-simulator";
+import { generatePOSTaggingSimulation } from "@/lib/nlp/simulators";
 import { Search, Download, Layers, Tag } from "lucide-react";
 
 const TAG_COLOR_MAP: Record<string, { bg: string; text: string; tone: "indigo" | "amber" | "emerald" | "violet" | "sky" | "rose" | "slate" }> = {
@@ -79,6 +81,9 @@ export default function PosPage() {
     URL.revokeObjectURL(url);
   }
 
+  const simTarget = analysis?.rawText?.slice(0, 160) || "The dedicated professor clearly explained complex computational algorithms.";
+  const simulation = useMemo(() => generatePOSTaggingSimulation(simTarget), [simTarget]);
+
   return (
     <div className="space-y-6">
       <SectionHeading
@@ -88,6 +93,15 @@ export default function PosPage() {
       />
 
       <ExperimentPlayground moduleTitle="Part-of-Speech Tagging" />
+
+      {/* INTERACTIVE ALGORITHM SIMULATOR */}
+      <StepSimulator
+        title="Visual Part-of-Speech Tagging Scanner"
+        subtitle="Watch the tagger inspect each word and its syntactic context to assign Penn Treebank tags step-by-step"
+        tokens={simulation.tokens}
+        steps={simulation.steps}
+        badgeText="Exp 6 Simulator"
+      />
 
       {loading && !analysis && (
         <div className="flex h-48 items-center justify-center">

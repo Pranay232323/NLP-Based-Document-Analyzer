@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useDocument } from "@/components/document-context";
 import { Card, CardBody, CardHeader, SectionHeading, Badge, StatCard, SecondaryButton, Spinner } from "@/components/ui/primitives";
 import { ExperimentPlayground } from "@/components/experiment-playground";
+import { StepSimulator } from "@/components/ui/step-simulator";
+import { generatePreprocessingSimulation } from "@/lib/nlp/simulators";
 import { Search, Download, Filter, CheckCircle2 } from "lucide-react";
 
 export default function PreprocessingPage() {
@@ -12,6 +14,9 @@ export default function PreprocessingPage() {
   const [activeTab, setActiveTab] = useState<"all" | "filtered" | "stopwords" | "numeric">("filtered");
 
   const preprocessing = analysis?.preprocessing;
+
+  const simTarget = analysis?.rawText?.slice(0, 160) || "Natural language processing is concerned with interactions between computers and language.";
+  const simulation = useMemo(() => generatePreprocessingSimulation(simTarget), [simTarget]);
 
   function filterTokens(tokens: string[] = []) {
     if (!searchQuery.trim()) return tokens;
@@ -56,6 +61,15 @@ export default function PreprocessingPage() {
       />
 
       <ExperimentPlayground moduleTitle="Text Preprocessing" />
+      
+      {/* INTERACTIVE ALGORITHM SIMULATOR */}
+      <StepSimulator
+        title="Visual Tokenizer & Stopword Filtration Simulator"
+        subtitle="Watch the tokenizer scan words, check stopword dictionaries, and filter noise step-by-step"
+        tokens={simulation.tokens}
+        steps={simulation.steps}
+        badgeText="Exp 2 Simulator"
+      />
 
       {loading && !preprocessing && (
         <div className="flex h-48 items-center justify-center">

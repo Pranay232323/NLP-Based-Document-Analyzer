@@ -14,6 +14,8 @@ import {
   Spinner,
 } from "@/components/ui/primitives";
 import { ExperimentPlayground } from "@/components/experiment-playground";
+import { StepSimulator } from "@/components/ui/step-simulator";
+import { generateSentimentSimulation } from "@/lib/nlp/simulators";
 import {
   analyzeSentiment,
   SAMPLE_SENTIMENT_TEXTS,
@@ -145,6 +147,9 @@ export default function SentimentPage() {
       ? ThumbsDown
       : MinusCircle;
 
+  const simTarget = inputText?.slice(0, 160) || "The lecture was very good, but the documentation was not clear.";
+  const simulation = useMemo(() => generateSentimentSimulation(simTarget), [simTarget]);
+
   return (
     <div className="space-y-6">
       <SectionHeading
@@ -163,6 +168,15 @@ export default function SentimentPage() {
             setResult(analyzeSentiment(rawText));
           }
         }}
+      />
+
+      {/* INTERACTIVE ALGORITHM SIMULATOR */}
+      <StepSimulator
+        title="Visual Sentiment Polarity Accumulator"
+        subtitle="Watch the sentiment analyzer scan each word, apply negation reversals and intensifiers, and compute the running emotional polarity score step-by-step"
+        tokens={simulation.tokens}
+        steps={simulation.steps}
+        badgeText="Exp 11 Simulator"
       />
 
       {/* SAMPLE SELECTOR & INPUT AREA */}

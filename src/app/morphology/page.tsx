@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useDocument } from "@/components/document-context";
 import { Card, CardBody, CardHeader, SectionHeading, Badge, PrimaryButton, SecondaryButton, Spinner } from "@/components/ui/primitives";
 import { ExperimentPlayground } from "@/components/experiment-playground";
+import { StepSimulator } from "@/components/ui/step-simulator";
+import { generateMorphologySimulation } from "@/lib/nlp/simulators";
 import type { MorphologyBreakdown, WordGeneration } from "@/lib/nlp/types";
 import { Search, Sparkles, Layers, Info } from "lucide-react";
 
@@ -60,6 +62,8 @@ export default function MorphologyPage() {
     );
   });
 
+  const simulation = useMemo(() => generateMorphologySimulation(word), [word]);
+
   return (
     <div className="space-y-6">
       <SectionHeading
@@ -69,6 +73,15 @@ export default function MorphologyPage() {
       />
 
       <ExperimentPlayground moduleTitle="Morphology Analyzer" />
+
+      {/* INTERACTIVE ALGORITHM SIMULATOR */}
+      <StepSimulator
+        title="Visual Morphological Decomposition Simulator"
+        subtitle={`Watch morpheme peeling: Prefix detection -> Suffix stripping -> Root isolation -> Inflectional generation for "${word}"`}
+        tokens={simulation.tokens}
+        steps={simulation.steps}
+        badgeText="Exp 4 Simulator"
+      />
 
       {docLoading && !analysis && (
         <div className="flex h-48 items-center justify-center">
